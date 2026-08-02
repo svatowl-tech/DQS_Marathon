@@ -4,19 +4,27 @@
   "description": "Осознанный дневник питания по системе Diet Quality Score",
   "icons": [
     {
-      "src": "pwa-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "pwa-512.png",
+      "src": "/pwa-192.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
-  "background_color": "#f8fafc",
-  "theme_color": "#0ea5e9",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "display": "standalone",
   "orientation": "portrait"
 }

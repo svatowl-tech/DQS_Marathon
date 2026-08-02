@@ -4,25 +4,59 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#050505" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="DQS Дневник" />
+    <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
     <title>DQS — Осознанный Дневник Питания</title>
+
+    <!-- Auto-recovery handler for chunk/module loading errors on app updates -->
+    <script>
+      window.addEventListener('error', function(e) {
+        var isScriptOrCssError = e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK');
+        var isModuleMimeError = e.message && e.message.indexOf('Expected a JavaScript') !== -1;
+        
+        if (isScriptOrCssError || isModuleMimeError) {
+          console.warn('[DQS Recovery] Script load failure detected. Refreshing cache...');
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var r of regs) r.unregister();
+            });
+          }
+          if (!sessionStorage.getItem('dqs_auto_reloaded')) {
+            sessionStorage.setItem('dqs_auto_reloaded', 'true');
+            window.location.reload(true);
+          }
+        }
+      }, true);
+    </script>
   </head>
   <body class="bg-[#050505] text-slate-100 antialiased selection:bg-emerald-500 selection:text-black min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            reg.onupdatefound = function() {
+              var installingWorker = reg.installing;
+              if (installingWorker) {
+                installingWorker.onstatechange = function() {
+                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[DQS SW] New content available; please refresh.');
+                  }
+                };
+              }
+            };
+          }).catch(function() {});
         });
       }
     </script>
   </body>
 </html>
-
