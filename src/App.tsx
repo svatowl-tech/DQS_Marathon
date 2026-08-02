@@ -13,12 +13,14 @@ import {
   saveDailyLogs,
   saveSettings,
   saveSundayReports,
-  generateSampleData,
+  DEFAULT_SETTINGS,
 } from './utils/storage';
 import { calculateDailyDQS, getInitialDiversity, getInitialServings } from './utils/dqsEngine';
 import { Navbar } from './components/Navbar';
 import { HomeDashboardView } from './components/HomeDashboardView';
 import { QuickAddMealModal } from './components/QuickAddMealModal';
+import { StartWizardModal } from './components/StartWizardModal';
+import { ExtendedPdfReportModal } from './components/ExtendedPdfReportModal';
 import { DailyLogView } from './components/DailyLogView';
 import { DQSTableSheet } from './components/DQSTableSheet';
 import { DQSGuideView } from './components/DQSGuideView';
@@ -33,9 +35,63 @@ export default function App() {
   const [settings, setSettings] = useState<UserSettings>(() => loadSettings());
   const [reports, setReports] = useState<WeeklySundayReport[]>(() => loadSundayReports());
   const [isQuickMealModalOpen, setIsQuickMealModalOpen] = useState(false);
+  const [isStartWizardOpen, setIsStartWizardOpen] = useState(false);
+  const [isExtendedPdfModalOpen, setIsExtendedPdfModalOpen] = useState(false);
+  const [pdfReportType, setPdfReportType] = useState<'weekly' | 'monthly'>('weekly');
+
+  const handleOpenPdfModal = (type: 'weekly' | 'monthly') => {
+    setPdfReportType(type);
+    setIsExtendedPdfModalOpen(true);
+  };
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  // Automatically trigger wizard on first load if user hasn't started yet
+  useEffect(() => {
+    if (!settings.isStarted && !settings.userName && logs.length === 0) {
+      // Keep modal available for user to open
+    }
+  }, []);
+
+  const handleStartApp = (newSettings: UserSettings) => {
+    setSettings(newSettings);
+    const startDate = newSettings.programStartDate || todayStr;
+    setSelectedDate(startDate);
+
+    // Initialize initial daily log entry for program start date
+    setLogs((prev) => {
+      const existing = prev.find((l) => l.date === startDate);
+      if (existing) {
+        return prev.map((l) =>
+          l.date === startDate
+            ? { ...l, weight: newSettings.startWeight || l.weight }
+            : l
+        );
+      }
+      const initialServings = getInitialServings();
+      const initialDiversity = getInitialDiversity();
+      const isWeekend = new Date(startDate).getDay() === 0 || new Date(startDate).getDay() === 6;
+      const startLog: DailyLogEntry = {
+        date: startDate,
+        isWeekend,
+        weight: newSettings.startWeight,
+        workout: { done: false, description: '' },
+        notOnPhoto: '',
+        servings: initialServings,
+        diversity: initialDiversity,
+        calculatedScore: calculateDailyDQS(initialServings, initialDiversity),
+        photos: [],
+        journal: {
+          note: '🚀 День 1 марафона DQS! Отличный старт!',
+        },
+        trackers: {
+          waterGlass: 0,
+        },
+      };
+      return [startLog, ...prev];
+    });
+  };
 
   // Save to LocalStorage on updates
   useEffect(() => {
@@ -100,11 +156,14 @@ export default function App() {
   };
 
   const handleResetData = () => {
-    if (confirm('Вы уверены, что хотите сбросить дневник к начальным демо-данным?')) {
-      const samples = generateSampleData();
-      setLogs(samples);
+    if (confirm('Вы уверены, что хотите полностью очистить все данные дневника и начать заново?')) {
+      setLogs([]);
       setReports([]);
-      alert('Данные сброшены к начальному состоянию!');
+      setSettings(DEFAULT_SETTINGS);
+      saveDailyLogs([]);
+      saveSundayReports([]);
+      saveSettings(DEFAULT_SETTINGS);
+      alert('Все данные дневника сброшены!');
     }
   };
 
@@ -122,9 +181,12 @@ export default function App() {
             currentLog={currentLog}
             allLogs={logs}
             userSettings={settings}
+            reports={reports}
             onUpdateLog={handleUpdateLog}
+            onSaveReport={handleSaveSundayReport}
             onNavigateTab={setActiveTab}
             onOpenQuickMealModal={() => setIsQuickMealModalOpen(true)}
+            onOpenStartWizard={() => setIsStartWizardOpen(true)}
           />
         )}
 
@@ -153,10 +215,13 @@ export default function App() {
             settings={settings}
             reports={reports}
             onSaveReport={handleSaveSundayReport}
+            onOpenExtendedPdfModal={handleOpenPdfModal}
           />
         )}
 
-        {activeTab === 'charts' && <AnalyticsView logs={logs} />}
+        {activeTab === 'charts' && (
+          <AnalyticsView logs={logs} settings={settings} reports={reports} />
+        )}
 
         {activeTab === 'print' && (
           <PrintView logs={logs} settings={settings} selectedDate={selectedDate} />
@@ -165,6 +230,8 @@ export default function App() {
         {activeTab === 'settings' && (
           <SettingsView
             settings={settings}
+            logs={logs}
+            reports={reports}
             onUpdateSettings={setSettings}
             onResetData={handleResetData}
           />
@@ -189,6 +256,24 @@ export default function App() {
         onUpdateLog={handleUpdateLog}
         settings={settings}
         onUpdateSettings={setSettings}
+      />
+
+      {/* Start Marathon Wizard Modal */}
+      <StartWizardModal
+        isOpen={isStartWizardOpen}
+        onClose={() => setIsStartWizardOpen(false)}
+        settings={settings}
+        onStart={handleStartApp}
+      />
+
+      {/* Extended PDF Report Generator Modal */}
+      <ExtendedPdfReportModal
+        isOpen={isExtendedPdfModalOpen}
+        onClose={() => setIsExtendedPdfModalOpen(false)}
+        logs={logs}
+        settings={settings}
+        reports={reports}
+        initialType={pdfReportType}
       />
 
       {/* Footer */}

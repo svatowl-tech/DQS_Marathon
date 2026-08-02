@@ -200,7 +200,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative">
+      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <div className="flex items-center gap-2.5">

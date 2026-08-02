@@ -55,6 +55,7 @@ export interface DailyLogEntry {
   isWeekend: boolean;
   weight?: number; // kg
   steps?: number;
+  measurements?: BodyMeasurements;
   workout: {
     done: boolean;
     description: string;
@@ -116,11 +117,15 @@ export interface FavoriteMealTemplate {
 
 export interface UserSettings {
   userName: string;
+  userAvatarUrl?: string;
   programStartDate: string; // YYYY-MM-DD
   startWeight: number;
   startMeasurements: BodyMeasurements;
   targetDqsGreen: number; // default 18
   theme: 'light' | 'dark' | 'system';
+  isStarted?: boolean;
+  targetWeight?: number;
+  height?: number;
   taskRules?: CustomTaskRule[];
   favoriteMeals?: FavoriteMealTemplate[];
 }

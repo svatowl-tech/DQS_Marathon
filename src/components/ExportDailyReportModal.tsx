@@ -17,14 +17,18 @@ import {
   Palette,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { DailyLogEntry, UserSettings } from '../types';
+import { DailyLogEntry, UserSettings, WeeklySundayReport } from '../types';
 import { DQS_CATEGORIES, formatDateRu, getDayOfWeekRu, calculateDailyDQS } from '../utils/dqsEngine';
+import { calculateAchievements } from '../utils/achievementsEngine';
+import { AchievementsBadgeList } from './AchievementsBadgeList';
 
 interface ExportDailyReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   log: DailyLogEntry;
   settings?: UserSettings;
+  allLogs?: DailyLogEntry[];
+  reports?: WeeklySundayReport[];
 }
 
 export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
@@ -32,6 +36,8 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
   onClose,
   log,
   settings,
+  allLogs = [],
+  reports = [],
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -42,6 +48,12 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
 
   const score = calculateDailyDQS(log.servings, log.diversity);
   const isGreenZone = score >= (settings?.targetDqsGreen || 18);
+
+  const achievementsData = calculateAchievements(
+    allLogs.length > 0 ? allLogs : [log],
+    settings,
+    reports
+  );
 
   const mealTypeLabels: Record<string, string> = {
     breakfast: 'Завтрак',
@@ -121,7 +133,7 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative my-auto">
+      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative my-auto max-h-[92vh] overflow-y-auto">
         {/* Top bar */}
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <div className="flex items-center gap-2.5">
@@ -386,6 +398,18 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
                 </div>
               ) : null}
             </div>
+
+            {/* Permanent Achievements on Daily Report */}
+            {achievementsData.unlockedPermanent.length > 0 && (
+              <div className="my-2 space-y-1">
+                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider block">
+                  🏆 Достижения марафона:
+                </span>
+                <AchievementsBadgeList
+                  permanentAchievements={achievementsData.unlockedPermanent}
+                />
+              </div>
+            )}
 
             {/* Footer Watermark */}
             <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-zinc-400">

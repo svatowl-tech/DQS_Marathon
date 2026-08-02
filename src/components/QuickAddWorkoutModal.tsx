@@ -13,11 +13,16 @@ const WORKOUT_PRESETS = [
   { label: 'Силовая', icon: '🏋️‍♂️' },
   { label: 'Бег / Кардио', icon: '🏃‍♂️' },
   { label: 'Велосипед', icon: '🚴‍♂️' },
+  { label: 'Скейт / Ролики', icon: '🛹' },
+  { label: 'Игры с мячом', icon: '⚽' },
   { label: 'Йога / Растяжка', icon: '🧘‍♀️' },
   { label: 'Зарядка / Фитнес', icon: '🤸‍♀️' },
   { label: 'Плавание', icon: '🏊‍♂️' },
-  { label: 'Ходьба', icon: '🚶‍♂️' },
+  { label: 'Ходьба / Трекинг', icon: '🚶‍♂️' },
   { label: 'Единоборства', icon: '🥊' },
+  { label: 'Танцы', icon: '💃' },
+  { label: 'Лыжи / Сноуборд', icon: '⛷️' },
+  { label: 'Другая активность', icon: '🎯' },
 ];
 
 const DURATIONS = ['15 мин', '30 мин', '45 мин', '60 мин', '90 мин'];
@@ -83,7 +88,7 @@ export const QuickAddWorkoutModal: React.FC<QuickAddWorkoutModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative">
+      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative my-auto max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <div className="flex items-center gap-2.5">
@@ -138,7 +143,7 @@ export const QuickAddWorkoutModal: React.FC<QuickAddWorkoutModalProps> = ({
             {/* Workout Type Presets */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-300 block">Тип нагрузки:</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {WORKOUT_PRESETS.map((preset) => {
                   const isSelected = selectedType === preset.label;
                   return (

@@ -19,32 +19,47 @@ import {
   Award,
   Dumbbell,
   Share2,
+  Flag,
 } from 'lucide-react';
-import { CustomTaskRule, DailyLogEntry, UserSettings } from '../types';
+import { CustomTaskRule, DailyLogEntry, UserSettings, WeeklySundayReport } from '../types';
 import { formatDateRu, getDayOfWeekRu } from '../utils/dqsEngine';
 import { QuickAddWorkoutModal } from './QuickAddWorkoutModal';
 import { ExportDailyReportModal } from './ExportDailyReportModal';
+import { AchievementsModal } from './AchievementsModal';
+import { AchievementsBadgeList } from './AchievementsBadgeList';
+import { QuickMeasurementModal } from './QuickMeasurementModal';
+import { QuickWeightModal } from './QuickWeightModal';
+import { calculateAchievements } from '../utils/achievementsEngine';
 
 interface HomeDashboardViewProps {
   currentLog: DailyLogEntry;
   allLogs: DailyLogEntry[];
   userSettings: UserSettings;
+  reports?: WeeklySundayReport[];
   onUpdateLog: (updated: DailyLogEntry) => void;
+  onSaveReport?: (report: WeeklySundayReport) => void;
   onNavigateTab: (tab: any) => void;
   onOpenQuickMealModal: () => void;
+  onOpenStartWizard: () => void;
 }
 
 export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
   currentLog,
   allLogs,
   userSettings,
+  reports = [],
   onUpdateLog,
+  onSaveReport,
   onNavigateTab,
   onOpenQuickMealModal,
+  onOpenStartWizard,
 }) => {
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
   const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
+  const [isMeasurementModalOpen, setIsMeasurementModalOpen] = useState(false);
+  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [editingWeight, setEditingWeight] = useState<string>(
     currentLog.weight ? String(currentLog.weight) : ''
   );
@@ -95,12 +110,42 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
       ? (allLogs.reduce((acc, l) => acc + l.calculatedScore, 0) / totalLogs).toFixed(1)
       : 0;
 
+  const achievementsData = calculateAchievements(allLogs, userSettings, reports);
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      {/* Start Hero Card Banner if app is not started yet */}
+      {(!userSettings.isStarted || !userSettings.userName) && (
+        <div className="bg-gradient-to-r from-emerald-950/80 via-[#121215] to-[#121215] border-2 border-emerald-500/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/40">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>Новый участник / Старт программы</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                Вы ещё не зафиксировали старт марафона!
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-300 max-w-xl">
+                Нажмите кнопку «Стартовать марафон», чтобы внести никнейм, дату начала марафона, стартовый вес и первые замеры.
+              </p>
+            </div>
+
+            <button
+              onClick={onOpenStartWizard}
+              className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm rounded-xl shadow-xl shadow-emerald-500/30 flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 shrink-0"
+            >
+              <Flag className="w-5 h-5 fill-black" />
+              <span>🚀 Стартовать марафон</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner */}
-      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-1.5">
+      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
+          <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 font-mono text-xs font-semibold border border-emerald-500/20">
                 {getDayOfWeekRu(currentLog.date)} • {formatDateRu(currentLog.date)}
@@ -117,7 +162,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100 tracking-tight break-words">
               {userSettings.userName ? `Привет, ${userSettings.userName}!` : 'Главная панель дня'}
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-lg">
@@ -125,10 +170,18 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full lg:w-auto">
+            <button
+              onClick={onOpenStartWizard}
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
+            >
+              <Flag className="w-4 h-4 text-emerald-400" />
+              <span>{userSettings.isStarted ? '⚙️ Старт параметры' : '🚀 Стартовать'}</span>
+            </button>
+
             <button
               onClick={onOpenQuickMealModal}
-              className="px-4 sm:px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
             >
               <Zap className="w-4 h-4 fill-black" />
               <span>+ Приём пищи</span>
@@ -136,7 +189,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
 
             <button
               onClick={() => setIsWorkoutModalOpen(true)}
-              className="px-4 sm:px-5 py-3 bg-orange-500 hover:bg-orange-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-500/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-orange-500 hover:bg-orange-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-500/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
             >
               <Dumbbell className="w-4 h-4 text-black fill-black" />
               <span>+ Тренировка</span>
@@ -144,15 +197,23 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
 
             <button
               onClick={() => setIsExportModalOpen(true)}
-              className="px-4 sm:px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
             >
               <Share2 className="w-4 h-4 text-white" />
               <span>📸 Отчёт за день</span>
             </button>
 
             <button
+              onClick={() => setIsAchievementsModalOpen(true)}
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
+            >
+              <Award className="w-4 h-4 text-amber-400" />
+              <span>🏆 Ачивки ({achievementsData.unlockedPermanent.length + achievementsData.unlockedWeekly.length})</span>
+            </button>
+
+            <button
               onClick={() => onNavigateTab('log')}
-              className="px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-200 font-semibold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-200 font-semibold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer shrink-0"
             >
               <Utensils className="w-4 h-4 text-emerald-400" />
               <span>Дневник</span>
@@ -160,6 +221,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
           </div>
         </div>
       </div>
+
 
       {/* Grid: Tasks & Metrics vs DQS Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -185,13 +247,18 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             ) : (
               activeRules.map((task) => {
                 const isDone = completedTasks[task.id];
+                const hasMeasurements = Boolean(
+                  currentLog.measurements?.waist || currentLog.measurements?.chest || currentLog.measurements?.hips
+                );
+                const hasWeight = Boolean(currentLog.weight && currentLog.weight > 0);
+
                 return (
                   <div
                     key={task.id}
                     onClick={() => toggleTask(task.id)}
-                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                    className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-all ${
                       isDone
-                        ? 'bg-emerald-500/5 border-emerald-500/20 text-zinc-400 line-through'
+                        ? 'bg-emerald-500/5 border-emerald-500/20 text-zinc-400'
                         : 'bg-white/[0.03] border-white/[0.06] hover:border-emerald-500/40 text-zinc-100'
                     }`}
                   >
@@ -202,36 +269,106 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
                         <Circle className="w-5 h-5 text-zinc-600 shrink-0" />
                       )}
                       <div>
-                        <div className="font-medium text-xs sm:text-sm">{task.title}</div>
+                        <div className={`font-medium text-xs sm:text-sm ${isDone ? 'line-through text-zinc-400' : ''}`}>
+                          {task.title}
+                        </div>
                         <div className="text-[10px] text-zinc-500">
                           {task.timeOfDay === 'morning' ? '🌅 Утро' : task.timeOfDay === 'evening' ? '🌙 Вечер' : '⏱ В течение дня'}
                         </div>
                       </div>
                     </div>
 
-                    {task.type === 'measurement' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onNavigateTab('settings');
-                        }}
-                        className="px-2.5 py-1 bg-white/10 hover:bg-emerald-500 hover:text-black text-[11px] font-semibold rounded-lg transition-colors shrink-0"
-                      >
-                        Замеры →
-                      </button>
-                    )}
+                    {/* Direct Action Button next to task */}
+                    <div className="self-end sm:self-center shrink-0">
+                      {task.type === 'measurement' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsMeasurementModalOpen(true);
+                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                            hasMeasurements
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
+                              : 'bg-amber-500 hover:bg-amber-400 text-black shadow-md shadow-amber-500/20'
+                          }`}
+                        >
+                          {hasMeasurements ? (
+                            <span>✓ Замеры ({currentLog.measurements?.waist || currentLog.measurements?.chest} см)</span>
+                          ) : (
+                            <span>📐 Ввести замеры</span>
+                          )}
+                        </button>
+                      )}
 
-                    {task.type === 'weekly_report' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onNavigateTab('weekly_report');
-                        }}
-                        className="px-2.5 py-1 bg-purple-500 text-white text-[11px] font-semibold rounded-lg hover:bg-purple-400 transition-colors shrink-0"
-                      >
-                        Отчет →
-                      </button>
-                    )}
+                      {task.type === 'weight' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsWeightModalOpen(true);
+                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                            hasWeight
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
+                              : 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-md shadow-indigo-500/20'
+                          }`}
+                        >
+                          {hasWeight ? (
+                            <span>✓ Вес: {currentLog.weight} кг</span>
+                          ) : (
+                            <span>⚖️ Ввести вес</span>
+                          )}
+                        </button>
+                      )}
+
+                      {task.type === 'photo_meal' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenQuickMealModal();
+                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                          }}
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                        >
+                          <span>🥗 Внести блюдо</span>
+                        </button>
+                      )}
+
+                      {task.type === 'weekly_report' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateTab('weekly_report');
+                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                          }}
+                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-600/20 flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                        >
+                          <span>📋 Заполнить отчёт</span>
+                        </button>
+                      )}
+
+                      {task.type === 'custom' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTask(task.id);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                            isDone
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-white/10 hover:bg-white/15 text-zinc-200 border border-white/10'
+                          }`}
+                        >
+                          {isDone ? '✓ Выполнено' : '✅ Отметить'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -417,6 +554,47 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
         onClose={() => setIsExportModalOpen(false)}
         log={currentLog}
         settings={userSettings}
+        allLogs={allLogs}
+        reports={reports}
+      />
+
+      {/* Achievements Modal */}
+      <AchievementsModal
+        logs={allLogs}
+        settings={userSettings}
+        reports={reports}
+        isOpen={isAchievementsModalOpen}
+        onClose={() => setIsAchievementsModalOpen(false)}
+      />
+
+      {/* Quick Measurement Modal */}
+      <QuickMeasurementModal
+        isOpen={isMeasurementModalOpen}
+        onClose={() => setIsMeasurementModalOpen(false)}
+        currentLog={currentLog}
+        userSettings={userSettings}
+        reports={reports}
+        onSave={(updatedLog, updatedReport) => {
+          onUpdateLog(updatedLog);
+          if (updatedReport && onSaveReport) {
+            onSaveReport(updatedReport);
+          }
+        }}
+      />
+
+      {/* Quick Weight Modal */}
+      <QuickWeightModal
+        isOpen={isWeightModalOpen}
+        onClose={() => setIsWeightModalOpen(false)}
+        currentLog={currentLog}
+        userSettings={userSettings}
+        reports={reports}
+        onSave={(updatedLog, updatedReport) => {
+          onUpdateLog(updatedLog);
+          if (updatedReport && onSaveReport) {
+            onSaveReport(updatedReport);
+          }
+        }}
       />
     </div>
   );

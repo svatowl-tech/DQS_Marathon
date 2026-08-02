@@ -7,23 +7,35 @@ import {
   getSundayOfDate,
 } from './dqsEngine';
 
-const STORAGE_KEY_SETTINGS = 'dqs_diary_settings_v1';
-const STORAGE_KEY_LOGS = 'dqs_diary_logs_v1';
-const STORAGE_KEY_REPORTS = 'dqs_diary_reports_v1';
+const STORAGE_KEY_SETTINGS = 'dqs_diary_settings_v2';
+const STORAGE_KEY_LOGS = 'dqs_diary_logs_v2';
+const STORAGE_KEY_REPORTS = 'dqs_diary_reports_v2';
+
+// Automatically clear legacy v1 test data from browser storage
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.removeItem('dqs_diary_settings_v1');
+    localStorage.removeItem('dqs_diary_logs_v1');
+    localStorage.removeItem('dqs_diary_reports_v1');
+  }
+} catch (e) {
+  // Ignore storage access errors
+}
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  userName: 'Участник DQS Марафона',
-  programStartDate: '2026-08-03',
-  startWeight: 72.5,
+  userName: '',
+  programStartDate: '',
+  startWeight: 0,
   startMeasurements: {
-    chest: 94,
-    waist: 76,
-    hips: 101,
-    thigh: 58,
-    arm: 29,
+    chest: undefined,
+    waist: undefined,
+    hips: undefined,
+    thigh: undefined,
+    arm: undefined,
   },
   targetDqsGreen: 18,
   theme: 'dark',
+  isStarted: false,
   taskRules: [
     {
       id: 't_mon_meas',
@@ -120,151 +132,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
   ],
 };
 
-// Default sample log data for initial app launch
+// Return empty array for clean app start
 export function generateSampleData(): DailyLogEntry[] {
-  const dates = [
-    '2026-08-03',
-    '2026-08-04',
-    '2026-08-05',
-    '2026-08-06',
-    '2026-08-07',
-    '2026-08-08',
-    '2026-08-09',
-  ];
-
-  const sampleServings = [
-    {
-      vegetables: 3,
-      fruits: 2,
-      nuts_seeds: 1,
-      whole_grains: 2,
-      lean_proteins: 2,
-      dairy: 1,
-      refined_grains: 0,
-      sweets: 0,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
-    },
-    {
-      vegetables: 4,
-      fruits: 2,
-      nuts_seeds: 1,
-      whole_grains: 2,
-      lean_proteins: 3,
-      dairy: 1,
-      refined_grains: 1,
-      sweets: 0,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
-    },
-    {
-      vegetables: 2,
-      fruits: 1,
-      nuts_seeds: 1,
-      whole_grains: 1,
-      lean_proteins: 2,
-      dairy: 1,
-      refined_grains: 1,
-      sweets: 1,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
-    },
-    {
-      vegetables: 4,
-      fruits: 3,
-      nuts_seeds: 1,
-      whole_grains: 2,
-      lean_proteins: 2,
-      dairy: 2,
-      refined_grains: 0,
-      sweets: 0,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
-    },
-    {
-      vegetables: 3,
-      fruits: 2,
-      nuts_seeds: 2,
-      whole_grains: 2,
-      lean_proteins: 2,
-      dairy: 1,
-      refined_grains: 0,
-      sweets: 0,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
-    },
-    {
-      vegetables: 2,
-      fruits: 1,
-      nuts_seeds: 0,
-      whole_grains: 1,
-      lean_proteins: 2,
-      dairy: 1,
-      refined_grains: 2,
-      sweets: 2,
-      processed_meats: 1,
-      sugary_drinks_alcohol: 1,
-    },
-    {
-      vegetables: 3,
-      fruits: 2,
-      nuts_seeds: 1,
-      whole_grains: 2,
-      lean_proteins: 2,
-      dairy: 1,
-      refined_grains: 0,
-      sweets: 0,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
-    },
-  ];
-
-  const sampleDiversities = [
-    { vegetables: true, fruits: true, nuts_seeds: false, whole_grains: false, lean_proteins: true, dairy: false, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-    { vegetables: true, fruits: true, nuts_seeds: false, whole_grains: true, lean_proteins: true, dairy: false, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-    { vegetables: false, fruits: false, nuts_seeds: false, whole_grains: false, lean_proteins: true, dairy: false, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-    { vegetables: true, fruits: true, nuts_seeds: false, whole_grains: true, lean_proteins: true, dairy: true, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-    { vegetables: true, fruits: true, nuts_seeds: true, whole_grains: false, lean_proteins: true, dairy: false, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-    { vegetables: false, fruits: false, nuts_seeds: false, whole_grains: false, lean_proteins: false, dairy: false, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-    { vegetables: true, fruits: true, nuts_seeds: false, whole_grains: true, lean_proteins: true, dairy: false, refined_grains: false, sweets: false, processed_meats: false, sugary_drinks_alcohol: false },
-  ];
-
-  const sampleWeights = [72.5, 72.3, 72.6, 72.1, 71.9, 72.4, 71.8];
-  const sampleSteps = [9200, 10500, 8400, 11200, 12000, 6500, 9800];
-
-  return dates.map((date, idx) => {
-    const isWeekend = idx >= 5;
-    const servings = sampleServings[idx] as any;
-    const diversity = sampleDiversities[idx] as any;
-    const score = calculateDailyDQS(servings, diversity);
-
-    return {
-      date,
-      isWeekend,
-      weight: sampleWeights[idx],
-      steps: sampleSteps[idx],
-      workout: {
-        done: idx % 2 === 0,
-        description: idx % 2 === 0 ? 'Силовая + кардио 45 мин' : 'Отдых',
-      },
-      notOnPhoto: idx === 5 ? 'Кусок торта на дне рождения друга' : 'Горсть миндаля в машине',
-      servings,
-      diversity,
-      calculatedScore: score,
-      photos: [],
-      journal: {
-        hungerBefore: 3,
-        fullnessAfter: 8,
-        mood: idx === 5 ? 'stressed' : 'great',
-        note: `Заметка за ${date}: Питание по тарелке DQS, чувство энергии на высоте!`,
-      },
-      trackers: {
-        waterGlass: 8,
-        coffeeCups: 2,
-        sleepHours: 7.5,
-      },
-    };
-  });
+  return [];
 }
 
 // LocalStorage load and save handlers
@@ -313,10 +183,8 @@ export function loadDailyLogs(): DailyLogEntry[] {
   } catch (e) {
     console.error('Failed to load logs', e);
   }
-  // Initialize with sample data if empty
-  const samples = generateSampleData();
-  saveDailyLogs(samples);
-  return samples;
+  // Return empty array if no logs exist
+  return [];
 }
 
 export function saveDailyLogs(logs: DailyLogEntry[]): void {

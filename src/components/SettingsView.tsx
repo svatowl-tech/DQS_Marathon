@@ -16,12 +16,15 @@ import {
   Bookmark,
   Utensils,
 } from 'lucide-react';
-import { BodyMeasurements, CustomTaskRule, FavoriteMealTemplate, UserSettings } from '../types';
+import { BodyMeasurements, CustomTaskRule, DailyLogEntry, FavoriteMealTemplate, UserSettings, WeeklySundayReport } from '../types';
 import { exportAllDataToJson, importAllDataFromJson, DEFAULT_SETTINGS } from '../utils/storage';
 import { DQS_CATEGORIES } from '../utils/dqsEngine';
+import { ParticipantProfileCard } from './ParticipantProfileCard';
 
 interface SettingsViewProps {
   settings: UserSettings;
+  logs?: DailyLogEntry[];
+  reports?: WeeklySundayReport[];
   onUpdateSettings: (settings: UserSettings) => void;
   onResetData: () => void;
 }
@@ -38,6 +41,8 @@ const DAY_LABELS = [
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
+  logs = [],
+  reports = [],
   onUpdateSettings,
   onResetData,
 }) => {
@@ -134,6 +139,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           Управление стартовыми параметрами, замерами тела и резервное копирование JSON
         </p>
       </div>
+
+      {/* PARTICIPANT SOCIAL PROFILE CARD */}
+      <ParticipantProfileCard
+        settings={settings}
+        logs={logs}
+        reports={reports}
+        onUpdateSettings={onUpdateSettings}
+      />
 
       {/* USER & PROGRAM PROFILE */}
       <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-4">
@@ -404,20 +417,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         )}
       </div>
 
-      {/* DANGER ZONE / RESET SAMPLE DATA */}
+      {/* DANGER ZONE / RESET ALL DATA */}
       <div className="bg-[#111] rounded-2xl p-5 border border-rose-500/20 shadow-lg space-y-3">
         <h3 className="font-bold text-rose-400 text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400" /> Очистить данные или Сбросить
+          <AlertTriangle className="w-4 h-4 text-rose-400" /> Очистить данные и Сбросить
         </h3>
         <p className="text-xs text-slate-400">
-          Сбросит журнал к демо-данным или полностью очистит локальное хранилище.
+          Полностью удалит все записи дневника, отчёты и настройки, возвращая приложение к чистому старту.
         </p>
 
         <button
           onClick={onResetData}
           className="px-4 py-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 font-bold text-xs rounded-xl transition-all cursor-pointer"
         >
-          Сбросить к начальным демо-данным
+          🗑️ Полностью очистить все данные
         </button>
       </div>
     </div>

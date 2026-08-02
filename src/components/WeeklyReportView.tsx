@@ -21,12 +21,15 @@ import {
   getWeekDates,
 } from '../utils/dqsEngine';
 import { generateReportCardImage } from '../utils/reportCardCanvas';
+import { calculateAchievements } from '../utils/achievementsEngine';
+import { AchievementsBadgeList } from './AchievementsBadgeList';
 
 interface WeeklyReportViewProps {
   logs: DailyLogEntry[];
   settings: UserSettings;
   reports: WeeklySundayReport[];
   onSaveReport: (report: WeeklySundayReport) => void;
+  onOpenExtendedPdfModal?: (type: 'weekly' | 'monthly') => void;
 }
 
 export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
@@ -34,6 +37,7 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
   settings,
   reports,
   onSaveReport,
+  onOpenExtendedPdfModal,
 }) => {
   // Default to nearest Sunday (e.g. 2026-08-09)
   const [selectedSunday, setSelectedSunday] = useState<string>(() => {
@@ -173,10 +177,13 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
     a.click();
   };
 
+  // Compute achievements for current selected week
+  const achievementsData = calculateAchievements(logs, settings, reports, weekDates);
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#111] via-[#1a1a1a] to-[#0a0a0a] border border-white/10 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#111] via-[#1a1a1a] to-[#0a0a0a] border border-white/10 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -192,7 +199,7 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
           </div>
 
           {/* Sunday Picker */}
-          <div className="flex items-center gap-2 bg-white/5 p-2 rounded-xl border border-white/10">
+          <div className="flex items-center gap-2 bg-white/5 p-2 rounded-xl border border-white/10 shrink-0">
             <Calendar className="w-4 h-4 text-emerald-400" />
             <input
               type="date"
@@ -202,6 +209,34 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
             />
           </div>
         </div>
+
+        {/* PDF Export Action Banner */}
+        {onOpenExtendedPdfModal && (
+          <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-zinc-300">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span className="font-semibold">Скачать полный отчёт в формате PDF:</span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => onOpenExtendedPdfModal('weekly')}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                <span>📄 Расширенный Недельный (с фото)</span>
+              </button>
+
+              <button
+                onClick={() => onOpenExtendedPdfModal('monthly')}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <Calendar className="w-4 h-4 text-black" />
+                <span>📅 Месячный PDF (Понедельный)</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AUTO CALCULATED STATS GRID */}
@@ -255,6 +290,29 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
             к пред. неделе ({prevWeekAvgWeight} кг)
           </p>
         </div>
+      </div>
+
+      {/* ACHIEVEMENTS IN WEEKLY REPORT */}
+      <div className="bg-[#111] rounded-2xl p-5 border border-amber-500/20 shadow-xl space-y-3">
+        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30">
+              <Award className="w-4 h-4" />
+            </div>
+            <h3 className="font-extrabold text-slate-100 text-sm sm:text-base">
+              Достижения и Награды Отчёта
+            </h3>
+          </div>
+          <span className="text-[11px] text-zinc-400 font-medium hidden sm:inline">
+            Постоянные награды + Достигнутые результаты за неделю
+          </span>
+        </div>
+
+        <AchievementsBadgeList
+          permanentAchievements={achievementsData.unlockedPermanent}
+          weeklyAchievements={achievementsData.unlockedWeekly}
+          showCategoryHeaders={true}
+        />
       </div>
 
       {/* FORM FIELDS & CANVAS PREVIEW SPLIT VIEW */}
