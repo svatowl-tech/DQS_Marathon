@@ -143,12 +143,18 @@ export function loadSettings(): UserSettings {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-        favoriteMeals: parsed.favoriteMeals || DEFAULT_SETTINGS.favoriteMeals,
-        taskRules: parsed.taskRules || DEFAULT_SETTINGS.taskRules,
-      };
+      if (parsed && typeof parsed === 'object') {
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          startMeasurements: {
+            ...DEFAULT_SETTINGS.startMeasurements,
+            ...(parsed.startMeasurements || {}),
+          },
+          favoriteMeals: Array.isArray(parsed.favoriteMeals) ? parsed.favoriteMeals : DEFAULT_SETTINGS.favoriteMeals,
+          taskRules: Array.isArray(parsed.taskRules) ? parsed.taskRules : DEFAULT_SETTINGS.taskRules,
+        };
+      }
     }
   } catch (e) {
     console.error('Failed to load settings', e);
@@ -170,14 +176,21 @@ export function loadDailyLogs(): DailyLogEntry[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Safe migration for category additions
         const initialServings = getInitialServings();
         const initialDiversity = getInitialDiversity();
-        return parsed.map((item: DailyLogEntry) => ({
-          ...item,
-          servings: { ...initialServings, ...item.servings },
-          diversity: { ...initialDiversity, ...item.diversity },
-        }));
+
+        // Deep defense mapping to prevent undefined access crashes
+        return parsed
+          .filter((item) => item && typeof item === 'object' && item.date)
+          .map((item: DailyLogEntry) => ({
+            ...item,
+            servings: { ...initialServings, ...(item.servings || {}) },
+            diversity: { ...initialDiversity, ...(item.diversity || {}) },
+            workout: item.workout || { done: false, description: '' },
+            journal: item.journal || { hungerBefore: 5, fullnessAfter: 7, mood: 'great', note: '' },
+            trackers: item.trackers || { waterGlass: 0, coffeeCups: 0, sleepHours: 7 },
+            photos: Array.isArray(item.photos) ? item.photos : [],
+          }));
       }
     }
   } catch (e) {
@@ -198,12 +211,18 @@ export function saveDailyLogs(logs: DailyLogEntry[]): void {
 export function loadSundayReports(): WeeklySundayReport[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_REPORTS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((r) => r && typeof r === 'object' && r.weekEndDate);
+      }
+    }
   } catch (e) {
     console.error('Failed to load reports', e);
   }
   return [];
 }
+
 
 export function saveSundayReports(reports: WeeklySundayReport[]): void {
   try {
