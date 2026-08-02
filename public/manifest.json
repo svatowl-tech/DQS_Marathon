@@ -1,0 +1,22 @@
+{
+  "short_name": "DQS Дневник",
+  "name": "DQS Дневник Качества Питания",
+  "description": "Осознанный дневник питания по системе Diet Quality Score",
+  "icons": [
+    {
+      "src": "pwa-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f8fafc",
+  "theme_color": "#0ea5e9",
+  "display": "standalone",
+  "orientation": "portrait"
+}

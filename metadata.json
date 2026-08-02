@@ -1,0 +1,6 @@
+{
+  "name": "DQS Дневник Питания",
+  "description": "Приложение для трекинга качества питания по системе Diet Quality Score (DQS), с еженедельными отчетами, графиками, экспортом в PDF/JSON и поддержкой PWA.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
