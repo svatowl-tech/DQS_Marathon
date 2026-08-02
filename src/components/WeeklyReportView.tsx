@@ -20,6 +20,7 @@ import {
   getSundayOfDate,
   getWeekDates,
 } from '../utils/dqsEngine';
+import { getFormattedLocalDate } from '../utils/timeZoneService';
 import { generateReportCardImage } from '../utils/reportCardCanvas';
 import { calculateAchievements } from '../utils/achievementsEngine';
 import { AchievementsBadgeList } from './AchievementsBadgeList';
@@ -41,7 +42,7 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
 }) => {
   // Default to nearest Sunday (e.g. 2026-08-09)
   const [selectedSunday, setSelectedSunday] = useState<string>(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getFormattedLocalDate(new Date());
     return getSundayOfDate(today);
   });
 

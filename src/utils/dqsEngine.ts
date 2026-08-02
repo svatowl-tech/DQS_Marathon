@@ -1,4 +1,5 @@
 import { CategoryId, DQSCategoryInfo, DailyLogEntry, UserSettings, WeeklySundayReport } from '../types';
+import { getFormattedLocalDate, parseLocalDate } from './timeZoneService';
 
 export const DQS_CATEGORIES: DQSCategoryInfo[] = [
   {
@@ -185,14 +186,14 @@ export function formatDateRu(dateStr: string): string {
 
 export function getDayOfWeekRu(dateStr: string): string {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   const days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
   return days[date.getDay()];
 }
 
 export function isSunday(dateStr: string): boolean {
   if (!dateStr) return false;
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   return date.getDay() === 0;
 }
 
@@ -204,28 +205,29 @@ export function calcPctChange(current: number, base: number): number {
 // Get dates range array for a week (Monday to Sunday)
 export function getWeekDates(mondayDateStr: string): string[] {
   const dates: string[] = [];
-  const curr = new Date(mondayDateStr);
+  const curr = parseLocalDate(mondayDateStr);
   for (let i = 0; i < 7; i++) {
     const d = new Date(curr);
     d.setDate(curr.getDate() + i);
-    dates.push(d.toISOString().split('T')[0]);
+    dates.push(getFormattedLocalDate(d));
   }
   return dates;
 }
 
 // Find Monday for given date
 export function getMondayOfDate(dateStr: string): string {
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   const day = d.getDay(); // 0 is Sun, 1 is Mon
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  return monday.toISOString().split('T')[0];
+  const monday = new Date(d);
+  monday.setDate(diff);
+  return getFormattedLocalDate(monday);
 }
 
 // Get Sunday for given date
 export function getSundayOfDate(dateStr: string): string {
-  const monday = new Date(getMondayOfDate(dateStr));
+  const monday = parseLocalDate(getMondayOfDate(dateStr));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
-  return sunday.toISOString().split('T')[0];
+  return getFormattedLocalDate(sunday);
 }

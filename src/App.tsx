@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Zap } from 'lucide-react';
 import { ActiveTab, DailyLogEntry, UserSettings, WeeklySundayReport } from './types';
 import {
@@ -16,7 +16,14 @@ import {
   DEFAULT_SETTINGS,
 } from './utils/storage';
 import { calculateDailyDQS, getInitialDiversity, getInitialServings } from './utils/dqsEngine';
+import {
+  fetchInternetTimeAndZone,
+  getFormattedLocalDate,
+  NetworkTimeInfo,
+  parseLocalDate,
+} from './utils/timeZoneService';
 import { Navbar } from './components/Navbar';
+import { TimeSyncBar } from './components/TimeSyncBar';
 import { HomeDashboardView } from './components/HomeDashboardView';
 import { QuickAddMealModal } from './components/QuickAddMealModal';
 import { StartWizardModal } from './components/StartWizardModal';
@@ -39,13 +46,84 @@ export default function App() {
   const [isExtendedPdfModalOpen, setIsExtendedPdfModalOpen] = useState(false);
   const [pdfReportType, setPdfReportType] = useState<'weekly' | 'monthly'>('weekly');
 
+  // Time & Timezone State
+  const initialLocalDate = getFormattedLocalDate(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>(initialLocalDate);
+  const [todayStr, setTodayStr] = useState<string>(initialLocalDate);
+  const [isSyncingTime, setIsSyncingTime] = useState(false);
+  const [dayChangeAlert, setDayChangeAlert] = useState<string | null>(null);
+  const [netTimeInfo, setNetTimeInfo] = useState<NetworkTimeInfo>({
+    dateStr: initialLocalDate,
+    timeStr: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    utcOffset: '+03:00',
+    isInternetSynced: false,
+    lastSyncedAt: new Date(),
+  });
+
+  const prevTodayRef = useRef<string>(initialLocalDate);
+
+  // Time Sync & Day Rollover Check Routine
+  const syncTimeAndCheckDayChange = useCallback(async () => {
+    setIsSyncingTime(true);
+    const info = await fetchInternetTimeAndZone();
+    setNetTimeInfo(info);
+    setIsSyncingTime(false);
+
+    const detectedToday = info.dateStr;
+    const previousToday = prevTodayRef.current;
+
+    // Detect if day changed (midnight rollover)
+    if (previousToday && previousToday !== detectedToday) {
+      prevTodayRef.current = detectedToday;
+      setTodayStr(detectedToday);
+
+      // Automatically advance selectedDate if user was on the previous today
+      setSelectedDate((currSelected) => {
+        if (currSelected === previousToday) {
+          return detectedToday;
+        }
+        return currSelected;
+      });
+
+      setDayChangeAlert(`Автоматически зафиксирована смена дня! Дата обновлена на ${info.dateStr}.`);
+    } else {
+      prevTodayRef.current = detectedToday;
+      setTodayStr(detectedToday);
+    }
+  }, []);
+
+  // Periodic Auto-Sync & Lifecycle Events
+  useEffect(() => {
+    // Initial Sync
+    syncTimeAndCheckDayChange();
+
+    // Poll every 15 seconds to catch midnight rollover promptly
+    const timer = setInterval(() => {
+      syncTimeAndCheckDayChange();
+    }, 15000);
+
+    // Sync when tab gets focus or network reconnects
+    const handleFocus = () => syncTimeAndCheckDayChange();
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        syncTimeAndCheckDayChange();
+      }
+    });
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleFocus);
+    };
+  }, [syncTimeAndCheckDayChange]);
+
   const handleOpenPdfModal = (type: 'weekly' | 'monthly') => {
     setPdfReportType(type);
     setIsExtendedPdfModalOpen(true);
   };
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
   // Automatically trigger wizard on first load if user hasn't started yet
   useEffect(() => {
@@ -169,13 +247,43 @@ export default function App() {
 
   const currentLog = getSelectedLog();
 
+  const getTodayLog = (): DailyLogEntry => {
+    const found = logs.find((l) => l.date === todayStr);
+    if (found) return found;
+
+    const initialServings = getInitialServings();
+    const initialDiversity = getInitialDiversity();
+    const isWeekend = parseLocalDate(todayStr).getDay() === 0 || parseLocalDate(todayStr).getDay() === 6;
+
+    return {
+      date: todayStr,
+      isWeekend,
+      workout: { done: false, description: '' },
+      notOnPhoto: '',
+      servings: initialServings,
+      diversity: initialDiversity,
+      calculatedScore: calculateDailyDQS(initialServings, initialDiversity),
+      photos: [],
+      journal: {},
+      trackers: {},
+    };
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
       {/* Navbar & Mobile Bottom Bar */}
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} todayLog={currentLog} />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} todayLog={getTodayLog()} />
 
       {/* Main Content View with Mobile Safe Padding */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 pb-24 sm:pb-8">
+        <TimeSyncBar
+          netTimeInfo={netTimeInfo}
+          isSyncing={isSyncingTime}
+          onManualSync={() => syncTimeAndCheckDayChange()}
+          dayChangeAlert={dayChangeAlert}
+          onDismissAlert={() => setDayChangeAlert(null)}
+        />
+
         {activeTab === 'home' && (
           <HomeDashboardView
             currentLog={currentLog}

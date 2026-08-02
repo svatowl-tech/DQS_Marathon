@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, User, Calendar, Scale, Ruler, CheckCircle2, X, Flag, Flame, Target } from 'lucide-react';
 import { BodyMeasurements, UserSettings } from '../types';
+import { getFormattedLocalDate } from '../utils/timeZoneService';
 
 interface StartWizardModalProps {
   isOpen: boolean;
@@ -15,7 +16,7 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   settings,
   onStart,
 }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getFormattedLocalDate(new Date());
 
   const [userName, setUserName] = useState(settings.userName || '');
   const [startDate, setStartDate] = useState(settings.programStartDate || todayStr);

@@ -33,6 +33,7 @@ import {
   getCategoryPoints,
   getDayOfWeekRu,
 } from '../utils/dqsEngine';
+import { getFormattedLocalDate, parseLocalDate } from '../utils/timeZoneService';
 import { QuickMealBuilder } from './QuickMealBuilder';
 import { ExportDailyReportModal } from './ExportDailyReportModal';
 
@@ -56,19 +57,19 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
 
   // Date Navigation Helpers
   const handlePrevDay = () => {
-    const d = new Date(log.date);
+    const d = parseLocalDate(log.date);
     d.setDate(d.getDate() - 1);
-    onSelectDate(d.toISOString().split('T')[0]);
+    onSelectDate(getFormattedLocalDate(d));
   };
 
   const handleNextDay = () => {
-    const d = new Date(log.date);
+    const d = parseLocalDate(log.date);
     d.setDate(d.getDate() + 1);
-    onSelectDate(d.toISOString().split('T')[0]);
+    onSelectDate(getFormattedLocalDate(d));
   };
 
   const handleTodayClick = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getFormattedLocalDate(new Date());
     onSelectDate(todayStr);
   };
 
