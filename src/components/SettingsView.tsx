@@ -17,6 +17,9 @@ import {
   Utensils,
   ShieldCheck,
   HardDrive,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import { BodyMeasurements, CustomTaskRule, DailyLogEntry, FavoriteMealTemplate, UserSettings, WeeklySundayReport } from '../types';
 import { exportAllDataToJson, importAllDataFromJson, downloadBackupFile, getStorageStats, DEFAULT_SETTINGS } from '../utils/storage';
@@ -152,6 +155,60 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         reports={reports}
         onUpdateSettings={onUpdateSettings}
       />
+
+      {/* THEME SELECTION CARD */}
+      <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-3">
+        <h3 className="font-bold text-slate-100 text-sm border-b border-white/10 pb-2 flex items-center gap-2">
+          <Sun className="w-4 h-4 text-amber-400" /> Оформление и Тема Приложения
+        </h3>
+        <p className="text-xs text-slate-400">
+          Выберите предпочтительную цветовую схему. Светлая тема отлично подходит для использования днём и при ярком освещении.
+        </p>
+
+        <div className="grid grid-cols-3 gap-3 pt-1">
+          {/* Light Theme */}
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, theme: 'light' })}
+            className={`p-3.5 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer min-h-[72px] active:scale-95 ${
+              settings.theme === 'light'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-300 font-bold shadow-md ring-2 ring-amber-500/30'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Sun className="w-6 h-6 text-amber-400 shrink-0" />
+            <span className="text-xs font-bold">Светлая</span>
+          </button>
+
+          {/* Dark Theme */}
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, theme: 'dark' })}
+            className={`p-3.5 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer min-h-[72px] active:scale-95 ${
+              settings.theme === 'dark' || !settings.theme
+                ? 'bg-emerald-500/15 border-emerald-500 text-emerald-300 font-bold shadow-md ring-2 ring-emerald-500/30'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Moon className="w-6 h-6 text-emerald-400 shrink-0" />
+            <span className="text-xs font-bold">Тёмная</span>
+          </button>
+
+          {/* System Theme */}
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, theme: 'system' })}
+            className={`p-3.5 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer min-h-[72px] active:scale-95 ${
+              settings.theme === 'system'
+                ? 'bg-sky-500/15 border-sky-500 text-sky-300 font-bold shadow-md ring-2 ring-sky-500/30'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Monitor className="w-6 h-6 text-sky-400 shrink-0" />
+            <span className="text-xs font-bold">Системная</span>
+          </button>
+        </div>
+      </div>
 
       {/* USER & PROGRAM PROFILE */}
       <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-4">

@@ -24,6 +24,8 @@ import {
   X,
   Zap,
   Share2,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { CategoryId, DailyLogEntry, PhotoEntry, UserSettings } from '../types';
 import {
@@ -44,6 +46,7 @@ interface DailyLogViewProps {
   onUpdateLog: (updated: DailyLogEntry) => void;
   onSelectDate: (dateStr: string) => void;
   settings?: UserSettings;
+  onOpenQuickMealModal?: (meal?: PhotoEntry) => void;
 }
 
 export const DailyLogView: React.FC<DailyLogViewProps> = ({
@@ -51,6 +54,7 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
   onUpdateLog,
   onSelectDate,
   settings,
+  onOpenQuickMealModal,
 }) => {
   const [activePhotoModal, setActivePhotoModal] = useState<string | null>(null);
   const [showPortionInfo, setShowPortionInfo] = useState(false);
@@ -141,9 +145,23 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
   };
 
   const handleDeletePhoto = (id: string) => {
+    const mealToDelete = log.photos.find((p) => p.id === id);
+    const updatedServings = { ...log.servings };
+    if (mealToDelete && mealToDelete.servingsAdded) {
+      Object.entries(mealToDelete.servingsAdded).forEach(([key, count]) => {
+        const catId = key as CategoryId;
+        const num = Number(count) || 0;
+        updatedServings[catId] = Math.max(0, Math.round(((updatedServings[catId] || 0) - num) * 10) / 10);
+      });
+    }
+    const updatedPhotos = log.photos.filter((p) => p.id !== id);
+    const updatedScore = calculateDailyDQS(updatedServings, log.diversity);
+
     onUpdateLog({
       ...log,
-      photos: log.photos.filter((p) => p.id !== id),
+      servings: updatedServings,
+      photos: updatedPhotos,
+      calculatedScore: updatedScore,
     });
   };
 
@@ -538,56 +556,131 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
           Это дает время на осознанность! Приложение автоматически добавляет штамп даты и времени на фото.
         </p>
 
-        {/* Photo Grid */}
+        {/* Photo & Meal Entries Grid */}
         {log.photos.length === 0 ? (
           <div className="border border-dashed border-white/10 rounded-xl p-8 text-center text-slate-500 space-y-2 bg-white/5">
             <Camera className="w-8 h-8 mx-auto text-slate-500" />
-            <p className="text-xs">Нажмите «Добавить фото», чтобы загрузить завтрак, обед или ужин</p>
+            <p className="text-xs">Нет сохраненных приёмов пищи за этот день.</p>
+            {onOpenQuickMealModal && (
+              <button
+                onClick={() => onOpenQuickMealModal()}
+                className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-1.5 mt-1"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Записать приём пищи</span>
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {log.photos.map((p) => (
-              <div
-                key={p.id}
-                className="relative group rounded-xl overflow-hidden border border-white/10 shadow-md aspect-square bg-[#050505]"
-              >
-                <img
-                  src={p.dataUrl}
-                  alt="Meal photo"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
-                  onClick={() => setActivePhotoModal(p.dataUrl)}
-                />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {log.photos.map((p) => {
+              const mealLabel =
+                p.mealType === 'breakfast'
+                  ? '🥞 Завтрак'
+                  : p.mealType === 'lunch'
+                  ? '🥗 Обед'
+                  : p.mealType === 'dinner'
+                  ? '🍗 Ужин'
+                  : '🍏 Перекус';
 
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 text-white pointer-events-none">
-                  <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="font-bold text-emerald-400">{p.timestamp}</span>
-                    {p.mood && (
-                      <span className="text-xs">
-                        {p.mood === 'great' && '😊'}
-                        {p.mood === 'good' && '🙂'}
-                        {p.mood === 'normal' && '😐'}
-                        {p.mood === 'tired' && '😴'}
-                        {p.mood === 'stressed' && '😤'}
-                      </span>
-                    )}
-                  </div>
-                  {(p.hungerBefore !== undefined || p.fullnessAfter !== undefined) && (
-                    <div className="text-[9px] text-slate-300 font-mono mt-0.5 flex gap-1.5">
-                      {p.hungerBefore !== undefined && <span>🍽️ Г:{p.hungerBefore}</span>}
-                      {p.fullnessAfter !== undefined && <span>🫄 С:{p.fullnessAfter}</span>}
+              const nonZeroServings = p.servingsAdded
+                ? Object.entries(p.servingsAdded).filter(([_, count]) => (Number(count) || 0) > 0)
+                : [];
+
+              return (
+                <div
+                  key={p.id}
+                  className="bg-[#18181c] border border-white/10 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between group transition-all hover:border-emerald-500/40"
+                >
+                  {/* Photo or Header */}
+                  {p.dataUrl ? (
+                    <div className="relative aspect-video bg-[#050505] overflow-hidden">
+                      <img
+                        src={p.dataUrl}
+                        alt={p.caption || 'Meal photo'}
+                        className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
+                        onClick={() => setActivePhotoModal(p.dataUrl!)}
+                      />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/75 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/30">
+                        {mealLabel} • {p.timestamp}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-400">{mealLabel}</span>
+                      <span className="text-[11px] font-mono text-slate-400">{p.timestamp}</span>
                     </div>
                   )}
-                </div>
 
-                <button
-                  onClick={() => handleDeletePhoto(p.id)}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/80 text-white flex items-center justify-center opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity border border-white/10"
-                  title="Удалить фото"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+                  {/* Body Content */}
+                  <div className="p-3 space-y-2 flex-1">
+                    {p.caption && (
+                      <p className="text-xs text-slate-200 font-medium leading-snug line-clamp-2">
+                        {p.caption}
+                      </p>
+                    )}
+
+                    {/* Servings Badges */}
+                    {nonZeroServings.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {nonZeroServings.map(([catId, count]) => {
+                          const catObj = DQS_CATEGORIES.find((c) => c.id === catId);
+                          const isNegative = catObj?.group === 'negative';
+                          return (
+                            <span
+                              key={catId}
+                              className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+                                isNegative
+                                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              }`}
+                            >
+                              {catObj?.nameRu.split(' ')[0]}: +{count}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Mood & Hunger/Fullness badges */}
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 pt-1">
+                      {p.hungerBefore !== undefined && <span>🍽️ Г: {p.hungerBefore}/10</span>}
+                      {p.fullnessAfter !== undefined && <span>🫄 С: {p.fullnessAfter}/10</span>}
+                      {p.mood && (
+                        <span>
+                          {p.mood === 'great' && '😊 Отлично'}
+                          {p.mood === 'good' && '🙂 Хорошо'}
+                          {p.mood === 'normal' && '😐 Норма'}
+                          {p.mood === 'tired' && '😴 Устал'}
+                          {p.mood === 'stressed' && '😤 Стресс'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Bar: Edit & Delete */}
+                  <div className="p-2 border-t border-white/5 bg-black/20 flex items-center justify-between gap-2">
+                    {onOpenQuickMealModal && (
+                      <button
+                        onClick={() => onOpenQuickMealModal(p)}
+                        className="flex-1 py-1.5 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-lg border border-emerald-500/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Редактировать</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleDeletePhoto(p.id)}
+                      className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30 transition-all cursor-pointer"
+                      title="Удалить приём пищи"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

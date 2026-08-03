@@ -20,8 +20,9 @@ import {
   Dumbbell,
   Share2,
   Flag,
+  Pencil,
 } from 'lucide-react';
-import { CustomTaskRule, DailyLogEntry, UserSettings, WeeklySundayReport } from '../types';
+import { CustomTaskRule, DailyLogEntry, PhotoEntry, UserSettings, WeeklySundayReport } from '../types';
 import { formatDateRu, getDayOfWeekRu } from '../utils/dqsEngine';
 import { QuickAddWorkoutModal } from './QuickAddWorkoutModal';
 import { ExportDailyReportModal } from './ExportDailyReportModal';
@@ -39,7 +40,7 @@ interface HomeDashboardViewProps {
   onUpdateLog: (updated: DailyLogEntry) => void;
   onSaveReport?: (report: WeeklySundayReport) => void;
   onNavigateTab: (tab: any) => void;
-  onOpenQuickMealModal: () => void;
+  onOpenQuickMealModal: (meal?: PhotoEntry) => void;
   onOpenStartWizard: () => void;
 }
 
@@ -481,7 +482,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
 
             {currentLog.photos.length === 0 ? (
               <div
-                onClick={onOpenQuickMealModal}
+                onClick={() => onOpenQuickMealModal()}
                 className="p-4 bg-white/[0.02] border border-dashed border-white/10 rounded-xl text-center space-y-1 cursor-pointer hover:border-emerald-500/40 transition-all"
               >
                 <Camera className="w-5 h-5 text-zinc-500 mx-auto" />
@@ -491,10 +492,30 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {currentLog.photos.map((photo) => (
-                  <div key={photo.id} className="relative rounded-lg overflow-hidden border border-white/10 group aspect-square">
-                    <img src={photo.dataUrl} alt={photo.caption} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity p-1 flex items-end">
-                      <span className="text-[9px] font-mono font-bold text-white truncate">{photo.timestamp}</span>
+                  <div
+                    key={photo.id}
+                    onClick={() => onOpenQuickMealModal(photo)}
+                    className="relative rounded-lg overflow-hidden border border-white/10 group aspect-square cursor-pointer bg-zinc-900 flex flex-col items-center justify-center p-1"
+                  >
+                    {photo.dataUrl ? (
+                      <img src={photo.dataUrl} alt={photo.caption} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-1 text-zinc-400">
+                        <Utensils className="w-5 h-5 text-emerald-400" />
+                        <span className="text-[9px] font-mono text-center truncate max-w-full px-1">
+                          {photo.caption || 'Прием пищи'}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 flex flex-col justify-between text-white">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-mono font-bold text-emerald-400">{photo.timestamp}</span>
+                        <Pencil className="w-3.5 h-3.5 text-zinc-300" />
+                      </div>
+                      <span className="text-[9px] text-zinc-200 line-clamp-2 leading-tight font-sans">
+                        {photo.caption || 'Нажмите для редактирования'}
+                      </span>
                     </div>
                   </div>
                 ))}

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Zap } from 'lucide-react';
-import { ActiveTab, DailyLogEntry, UserSettings, WeeklySundayReport } from './types';
+import { ActiveTab, DailyLogEntry, PhotoEntry, UserSettings, WeeklySundayReport } from './types';
 import {
   loadDailyLogs,
   loadSettings,
@@ -36,6 +36,7 @@ import { WeeklyReportView } from './components/WeeklyReportView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { PrintView } from './components/PrintView';
 import { SettingsView } from './components/SettingsView';
+import { FoodDictionaryView } from './components/FoodDictionaryView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -43,9 +44,15 @@ export default function App() {
   const [settings, setSettings] = useState<UserSettings>(() => loadSettings());
   const [reports, setReports] = useState<WeeklySundayReport[]>(() => loadSundayReports());
   const [isQuickMealModalOpen, setIsQuickMealModalOpen] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<PhotoEntry | null>(null);
   const [isStartWizardOpen, setIsStartWizardOpen] = useState(false);
   const [isExtendedPdfModalOpen, setIsExtendedPdfModalOpen] = useState(false);
   const [pdfReportType, setPdfReportType] = useState<'weekly' | 'monthly'>('weekly');
+
+  const handleOpenQuickMealModal = (meal?: PhotoEntry) => {
+    setEditingMeal(meal || null);
+    setIsQuickMealModalOpen(true);
+  };
 
   // Time & Timezone State
   const initialLocalDate = getFormattedLocalDate(new Date());
@@ -93,6 +100,28 @@ export default function App() {
       setTodayStr(detectedToday);
     }
   }, []);
+
+  // Theme Switching Effect (Light vs Dark vs System)
+  useEffect(() => {
+    const root = document.documentElement;
+    const currentTheme = settings.theme || 'dark';
+
+    let effectiveTheme = currentTheme;
+    if (currentTheme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      effectiveTheme = prefersDark ? 'dark' : 'light';
+    }
+
+    if (effectiveTheme === 'light') {
+      root.classList.add('light');
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+    } else {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      root.setAttribute('data-theme', 'dark');
+    }
+  }, [settings.theme]);
 
   // Periodic Auto-Sync & Lifecycle Events
   useEffect(() => {
@@ -294,7 +323,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-[#050505] text-slate-200 flex flex-col font-sans selection:bg-emerald-500 selection:text-black app-main-wrapper">
       {/* Navbar & Mobile Bottom Bar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} todayLog={getTodayLog()} />
 
@@ -317,7 +346,7 @@ export default function App() {
             onUpdateLog={handleUpdateLog}
             onSaveReport={handleSaveSundayReport}
             onNavigateTab={setActiveTab}
-            onOpenQuickMealModal={() => setIsQuickMealModalOpen(true)}
+            onOpenQuickMealModal={handleOpenQuickMealModal}
             onOpenStartWizard={() => setIsStartWizardOpen(true)}
           />
         )}
@@ -328,6 +357,15 @@ export default function App() {
             onUpdateLog={handleUpdateLog}
             onSelectDate={setSelectedDate}
             settings={settings}
+            onOpenQuickMealModal={handleOpenQuickMealModal}
+          />
+        )}
+
+        {activeTab === 'dictionary' && (
+          <FoodDictionaryView
+            todayLog={currentLog}
+            onUpdateLog={handleUpdateLog}
+            onNavigateToLog={() => setActiveTab('log')}
           />
         )}
 
@@ -373,7 +411,7 @@ export default function App() {
 
       {/* Mobile Floating Action Button (FAB) */}
       <button
-        onClick={() => setIsQuickMealModalOpen(true)}
+        onClick={() => handleOpenQuickMealModal()}
         className="sm:hidden fixed bottom-16 right-4 z-30 p-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer min-h-[48px]"
         aria-label="Добавить приём пищи"
       >
@@ -384,11 +422,15 @@ export default function App() {
       {/* Global Quick Add Meal Modal */}
       <QuickAddMealModal
         isOpen={isQuickMealModalOpen}
-        onClose={() => setIsQuickMealModalOpen(false)}
+        onClose={() => {
+          setIsQuickMealModalOpen(false);
+          setEditingMeal(null);
+        }}
         log={currentLog}
         onUpdateLog={handleUpdateLog}
         settings={settings}
         onUpdateSettings={setSettings}
+        initialMealToEdit={editingMeal}
       />
 
       {/* Start Marathon Wizard Modal */}

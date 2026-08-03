@@ -184,7 +184,7 @@ export const ParticipantProfileCard: React.FC<ParticipantProfileCardProps> = ({
       {/* EXPORTABLE PROFILE CARD CONTAINER */}
       <div
         ref={cardRef}
-        className="bg-gradient-to-b from-[#18181c] via-[#121215] to-[#0d0d10] border border-amber-500/30 rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden space-y-6 text-zinc-100"
+        className="profile-card-export-wrapper bg-gradient-to-b from-[#18181c] via-[#121215] to-[#0d0d10] border border-amber-500/30 rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden space-y-6 text-zinc-100"
       >
         {/* Subtle Background Glow Decorative Elements */}
         <div className="absolute -top-24 -right-24 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />

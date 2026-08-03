@@ -11,6 +11,7 @@ import {
   FileText,
   MoreHorizontal,
   X,
+  Utensils,
 } from 'lucide-react';
 import { ActiveTab, DailyLogEntry } from '../types';
 import { formatDateRu } from '../utils/dqsEngine';
@@ -68,6 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, todayLo
   const primaryMobileTabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Главная', icon: <Sparkles className="w-5 h-5" /> },
     { id: 'log', label: 'Дневник', icon: <BookOpen className="w-5 h-5" /> },
+    { id: 'dictionary', label: 'Словарь', icon: <Utensils className="w-5 h-5" /> },
     { id: 'table', label: 'Таблица', icon: <Table className="w-5 h-5" /> },
     { id: 'weekly_report', label: 'Отчет', icon: <Award className="w-5 h-5" /> },
   ];
@@ -75,6 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, todayLo
   const allNavItems: { id: ActiveTab; label: string; icon: React.ReactNode; badge?: boolean }[] = [
     { id: 'home', label: 'Главная', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'log', label: 'Дневник', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'dictionary', label: 'Словарь еды', icon: <Utensils className="w-4 h-4" /> },
     { id: 'table', label: 'DQS-Таблица', icon: <Table className="w-4 h-4" /> },
     { id: 'guide', label: 'Гайды DQS', icon: <FileText className="w-4 h-4" /> },
     { id: 'weekly_report', label: 'Отчет недели', icon: <Award className="w-4 h-4" />, badge: true },

@@ -26,7 +26,7 @@ export interface DQSCategoryInfo {
 
 export interface PhotoEntry {
   id: string;
-  dataUrl: string;
+  dataUrl?: string;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   timestamp: string; // ISO or formatted HH:mm
   caption?: string;
@@ -34,6 +34,7 @@ export interface PhotoEntry {
   hungerBefore?: number; // 1-10
   fullnessAfter?: number; // 1-10
   mood?: 'great' | 'good' | 'normal' | 'tired' | 'stressed';
+  servingsAdded?: Partial<Record<CategoryId, number>>;
 }
 
 export interface JournalEntry {
@@ -136,4 +137,4 @@ export interface UserSettings {
   lastCloudSyncTime?: string;
 }
 
-export type ActiveTab = 'home' | 'log' | 'table' | 'weekly_report' | 'guide' | 'charts' | 'settings' | 'print';
+export type ActiveTab = 'home' | 'log' | 'dictionary' | 'table' | 'weekly_report' | 'guide' | 'charts' | 'settings' | 'print';

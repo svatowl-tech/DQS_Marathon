@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Camera,
@@ -9,10 +9,16 @@ import {
   Bookmark,
   Star,
   Check,
+  Search,
+  BookOpen,
+  Utensils,
+  Sparkles,
+  Trash2,
 } from 'lucide-react';
-import { CategoryId, DailyLogEntry, FavoriteMealTemplate, UserSettings } from '../types';
+import { CategoryId, DailyLogEntry, FavoriteMealTemplate, PhotoEntry, UserSettings } from '../types';
 import { DQS_CATEGORIES, calculateDailyDQS } from '../utils/dqsEngine';
 import { compressImage } from '../utils/imageCompressor';
+import { searchFoodDictionary, calculatePortion } from '../utils/foodCalculator';
 
 interface QuickAddMealModalProps {
   isOpen: boolean;
@@ -21,6 +27,7 @@ interface QuickAddMealModalProps {
   onUpdateLog: (updated: DailyLogEntry) => void;
   settings?: UserSettings;
   onUpdateSettings?: (settings: UserSettings) => void;
+  initialMealToEdit?: PhotoEntry | null;
 }
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -39,6 +46,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
   onUpdateLog,
   settings,
   onUpdateSettings,
+  initialMealToEdit,
 }) => {
   const [mealType, setMealType] = useState<MealType>('lunch');
   const [categoryTab, setCategoryTab] = useState<'healthy' | 'restricted'>('healthy');
@@ -59,9 +67,9 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [hungerBefore, setHungerBefore] = useState<number>(log.journal.hungerBefore ?? 5);
-  const [fullnessAfter, setFullnessAfter] = useState<number>(log.journal.fullnessAfter ?? 7);
-  const [mood, setMood] = useState<'great' | 'good' | 'normal' | 'tired' | 'stressed' | undefined>(log.journal.mood);
+  const [hungerBefore, setHungerBefore] = useState<number>(log.journal?.hungerBefore ?? 5);
+  const [fullnessAfter, setFullnessAfter] = useState<number>(log.journal?.fullnessAfter ?? 7);
+  const [mood, setMood] = useState<'great' | 'good' | 'normal' | 'tired' | 'stressed' | undefined>(log.journal?.mood);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [appliedTemplateName, setAppliedTemplateName] = useState<string | null>(null);
 
@@ -70,7 +78,151 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
   const [newTemplateTitle, setNewTemplateTitle] = useState('');
   const [templateSavedMsg, setTemplateSavedMsg] = useState(false);
 
+  // Smart Food Dictionary Search State
+  const [foodSearchQuery, setFoodSearchQuery] = useState('');
+  const [autoCategoryNotice, setAutoCategoryNotice] = useState<string | null>(null);
+
+  // Selected Dish Quantity Config State
+  const [selectedFoodItem, setSelectedFoodItem] = useState<any | null>(null);
+  const [foodPortionAmount, setFoodPortionAmount] = useState<number>(200);
+  const [foodMultiplier, setFoodMultiplier] = useState<number>(1.0);
+
+  // Reset or populate form data every time the modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      if (initialMealToEdit) {
+        setMealType(initialMealToEdit.mealType);
+        setPhotoUrl(initialMealToEdit.dataUrl || null);
+        setCaption(initialMealToEdit.caption || '');
+        setHungerBefore(initialMealToEdit.hungerBefore ?? 5);
+        setFullnessAfter(initialMealToEdit.fullnessAfter ?? 7);
+        setMood(initialMealToEdit.mood);
+        setServingsAdded({
+          vegetables: 0,
+          fruits: 0,
+          nuts_seeds: 0,
+          whole_grains: 0,
+          lean_proteins: 0,
+          dairy: 0,
+          oils_fats: 0,
+          healthy_drinks: 0,
+          refined_grains: 0,
+          sweets: 0,
+          processed_meats: 0,
+          sugary_drinks_alcohol: 0,
+          ...(initialMealToEdit.servingsAdded || {}),
+        });
+      } else {
+        setMealType('lunch');
+        setServingsAdded({
+          vegetables: 0,
+          fruits: 0,
+          nuts_seeds: 0,
+          whole_grains: 0,
+          lean_proteins: 0,
+          dairy: 0,
+          oils_fats: 0,
+          healthy_drinks: 0,
+          refined_grains: 0,
+          sweets: 0,
+          processed_meats: 0,
+          sugary_drinks_alcohol: 0,
+        });
+        setPhotoUrl(null);
+        setCaption('');
+        setHungerBefore(log.journal?.hungerBefore ?? 5);
+        setFullnessAfter(log.journal?.fullnessAfter ?? 7);
+        setMood(log.journal?.mood);
+      }
+      setSavedSuccess(false);
+      setAppliedTemplateName(null);
+      setShowSaveTemplateInput(false);
+      setNewTemplateTitle('');
+      setTemplateSavedMsg(false);
+      setFoodSearchQuery('');
+      setAutoCategoryNotice(null);
+      setSelectedFoodItem(null);
+      setFoodPortionAmount(200);
+      setFoodMultiplier(1.0);
+    }
+  }, [isOpen, initialMealToEdit]);
+
   if (!isOpen) return null;
+
+  const searchResults = searchFoodDictionary(foodSearchQuery);
+
+  const handleSelectDictionaryFood = (item: any, directAdd: boolean = false) => {
+    const initialAmount = searchResults.detectedAmount || item.defaultAmount || 200;
+    
+    if (directAdd) {
+      // Direct add standard portion
+      const calc = calculatePortion(item, initialAmount);
+      setServingsAdded((prev) => {
+        const updated = { ...prev };
+        Object.entries(calc.servings).forEach(([catId, val]) => {
+          const key = catId as CategoryId;
+          updated[key] = Math.round(((updated[key] || 0) + (val || 0)) * 10) / 10;
+        });
+        return updated;
+      });
+
+      setCaption((prev) => {
+        const newText = `${item.title} (${initialAmount}${item.unit})`;
+        return prev ? `${prev}, ${newText}` : newText;
+      });
+
+      setAutoCategoryNotice(`Авто-распределено: ${item.title} (${calc.summaryText})`);
+      setFoodSearchQuery('');
+      setTimeout(() => setAutoCategoryNotice(null), 3000);
+    } else {
+      // Open portion quantity adjuster panel
+      setSelectedFoodItem(item);
+      setFoodPortionAmount(initialAmount);
+      setFoodMultiplier(1.0);
+      setFoodSearchQuery('');
+    }
+  };
+
+  const handleMultiplierChange = (mult: number) => {
+    const clampedMult = Math.max(0.1, Math.min(5, Math.round(mult * 100) / 100));
+    setFoodMultiplier(clampedMult);
+    if (selectedFoodItem) {
+      const baseAmt = selectedFoodItem.defaultAmount || 200;
+      setFoodPortionAmount(Math.round(baseAmt * clampedMult));
+    }
+  };
+
+  const handlePortionAmountChange = (amt: number) => {
+    const clampedAmt = Math.max(10, amt);
+    setFoodPortionAmount(clampedAmt);
+    if (selectedFoodItem && selectedFoodItem.defaultAmount) {
+      setFoodMultiplier(Math.round((clampedAmt / selectedFoodItem.defaultAmount) * 100) / 100);
+    }
+  };
+
+  const handleConfirmAddConfiguredFood = () => {
+    if (!selectedFoodItem) return;
+    const calc = calculatePortion(selectedFoodItem, foodPortionAmount);
+
+    setServingsAdded((prev) => {
+      const updated = { ...prev };
+      Object.entries(calc.servings).forEach(([catId, val]) => {
+        const key = catId as CategoryId;
+        updated[key] = Math.round(((updated[key] || 0) + (val || 0)) * 10) / 10;
+      });
+      return updated;
+    });
+
+    const descText = foodMultiplier !== 1.0
+      ? `${selectedFoodItem.title} (${foodPortionAmount}${selectedFoodItem.unit}, ${foodMultiplier}x порции)`
+      : `${selectedFoodItem.title} (${foodPortionAmount}${selectedFoodItem.unit})`;
+
+    setCaption((prev) => (prev ? `${prev}, ${descText}` : descText));
+
+    setAutoCategoryNotice(`Добавлено: ${selectedFoodItem.title} (${calc.summaryText})`);
+    setSelectedFoodItem(null);
+    setTimeout(() => setAutoCategoryNotice(null), 3000);
+  };
 
   const favoriteMeals: FavoriteMealTemplate[] = settings?.favoriteMeals || [];
 
@@ -150,46 +302,120 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
 
   const handleSaveMeal = () => {
     const updatedServings = { ...log.servings };
-    Object.entries(servingsAdded).forEach(([key, count]) => {
-      const catId = key as CategoryId;
-      updatedServings[catId] = (updatedServings[catId] || 0) + count;
-    });
 
-    const updatedPhotos = [...log.photos];
-    if (photoUrl) {
+    if (initialMealToEdit) {
+      // Subtract old servings of this meal
+      if (initialMealToEdit.servingsAdded) {
+        Object.entries(initialMealToEdit.servingsAdded).forEach(([key, count]) => {
+          const catId = key as CategoryId;
+          const oldVal = Number(count) || 0;
+          updatedServings[catId] = Math.max(0, Math.round(((updatedServings[catId] || 0) - oldVal) * 10) / 10);
+        });
+      }
+      // Add new servings of this meal
+      Object.entries(servingsAdded).forEach(([key, count]) => {
+        const catId = key as CategoryId;
+        const newVal = Number(count) || 0;
+        updatedServings[catId] = Math.round(((updatedServings[catId] || 0) + newVal) * 10) / 10;
+      });
+
+      const updatedPhotos = log.photos.map((p) => {
+        if (p.id === initialMealToEdit.id) {
+          return {
+            ...p,
+            mealType,
+            dataUrl: photoUrl || undefined,
+            caption: caption || `${MEAL_TYPES.find((m) => m.id === mealType)?.label}`,
+            hungerBefore,
+            fullnessAfter,
+            mood,
+            servingsAdded: { ...servingsAdded },
+          };
+        }
+        return p;
+      });
+
+      const newScore = calculateDailyDQS(updatedServings, log.diversity);
+
+      onUpdateLog({
+        ...log,
+        servings: updatedServings,
+        photos: updatedPhotos,
+        calculatedScore: newScore,
+        journal: {
+          ...log.journal,
+          hungerBefore: hungerBefore ?? log.journal?.hungerBefore,
+          fullnessAfter: fullnessAfter ?? log.journal?.fullnessAfter,
+          mood: mood ?? log.journal?.mood,
+        },
+      });
+    } else {
+      // Add new meal entry
+      Object.entries(servingsAdded).forEach(([key, count]) => {
+        const catId = key as CategoryId;
+        const newVal = Number(count) || 0;
+        updatedServings[catId] = Math.round(((updatedServings[catId] || 0) + newVal) * 10) / 10;
+      });
+
       const nowFormatted = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      updatedPhotos.push({
-        id: `p_${Date.now()}`,
-        dataUrl: photoUrl,
+      const newMeal: PhotoEntry = {
+        id: `meal_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        dataUrl: photoUrl || undefined,
         mealType,
         timestamp: nowFormatted,
         caption: caption || `${MEAL_TYPES.find((m) => m.id === mealType)?.label}`,
         hungerBefore,
         fullnessAfter,
         mood,
+        servingsAdded: { ...servingsAdded },
+      };
+
+      const updatedPhotos = [...log.photos, newMeal];
+      const newScore = calculateDailyDQS(updatedServings, log.diversity);
+
+      onUpdateLog({
+        ...log,
+        servings: updatedServings,
+        photos: updatedPhotos,
+        calculatedScore: newScore,
+        journal: {
+          ...log.journal,
+          hungerBefore: hungerBefore ?? log.journal?.hungerBefore,
+          fullnessAfter: fullnessAfter ?? log.journal?.fullnessAfter,
+          mood: mood ?? log.journal?.mood,
+        },
       });
     }
-
-    const newScore = calculateDailyDQS(updatedServings, log.diversity);
-
-    onUpdateLog({
-      ...log,
-      servings: updatedServings,
-      photos: updatedPhotos,
-      calculatedScore: newScore,
-      journal: {
-        ...log.journal,
-        hungerBefore: hungerBefore ?? log.journal.hungerBefore,
-        fullnessAfter: fullnessAfter ?? log.journal.fullnessAfter,
-        mood: mood ?? log.journal.mood,
-      },
-    });
 
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
       onClose();
-    }, 1000);
+    }, 800);
+  };
+
+  const handleDeleteThisMeal = () => {
+    if (!initialMealToEdit) return;
+    if (confirm('Вы уверены, что хотите удалить этот приём пищи? Начисленные порции будут отменены.')) {
+      const updatedServings = { ...log.servings };
+      if (initialMealToEdit.servingsAdded) {
+        Object.entries(initialMealToEdit.servingsAdded).forEach(([key, count]) => {
+          const catId = key as CategoryId;
+          const num = Number(count) || 0;
+          updatedServings[catId] = Math.max(0, Math.round(((updatedServings[catId] || 0) - num) * 10) / 10);
+        });
+      }
+      const updatedPhotos = log.photos.filter((p) => p.id !== initialMealToEdit.id);
+      const newScore = calculateDailyDQS(updatedServings, log.diversity);
+
+      onUpdateLog({
+        ...log,
+        servings: updatedServings,
+        photos: updatedPhotos,
+        calculatedScore: newScore,
+      });
+      onClose();
+    }
   };
 
   const healthyCategories = DQS_CATEGORIES.filter((c) => c.group === 'positive');
@@ -211,10 +437,12 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-zinc-100">
-                Запись Приёма Пищи
+                {initialMealToEdit ? 'Редактирование приёма пищи' : 'Запись приёма пищи'}
               </h2>
               <p className="text-[11px] text-zinc-400">
-                Быстрый ввод порций и любимых шаблонов за {log.date}
+                {initialMealToEdit
+                  ? `Изменение порций и состава блюда (${initialMealToEdit.timestamp})`
+                  : `Быстрый ввод порций и любимых шаблонов за ${log.date}`}
               </p>
             </div>
           </div>
@@ -314,6 +542,243 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
                     <span>Галерея</span>
                     <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                   </label>
+                </div>
+              )}
+            </div>
+
+            {/* 2.5 Smart Food Dictionary Search */}
+            <div className="space-y-2 p-3 bg-gradient-to-r from-emerald-950/40 via-zinc-900 to-zinc-900 border border-emerald-500/30 rounded-xl">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Умный словарь еды (быстрый авто-расчет):</span>
+                </label>
+                <span className="text-[10px] text-zinc-400">Например: Борщ 200г</span>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <input
+                  type="text"
+                  value={foodSearchQuery}
+                  onChange={(e) => setFoodSearchQuery(e.target.value)}
+                  placeholder="Введите блюдо (например: Борщ 200g, Шаурма, Цезарь)..."
+                  className="w-full bg-zinc-900/90 border border-emerald-500/40 focus:border-emerald-500 rounded-xl pl-9 pr-8 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                />
+                {foodSearchQuery && (
+                  <button
+                    onClick={() => setFoodSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Notification toast for auto categorization */}
+              {autoCategoryNotice && (
+                <div className="p-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{autoCategoryNotice}</span>
+                </div>
+              )}
+
+              {/* Search results popup dropdown */}
+              {foodSearchQuery.trim().length > 0 && (
+                <div className="max-h-56 overflow-y-auto space-y-1 bg-zinc-950 border border-zinc-700 rounded-xl p-1.5 shadow-2xl">
+                  {searchResults.results.slice(0, 10).map((item) => {
+                    const amount = searchResults.detectedAmount || item.defaultAmount;
+                    const calc = calculatePortion(item, amount);
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-2 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 transition-all flex items-center justify-between gap-2 group"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleSelectDictionaryFood(item, false)}
+                          className="text-left space-y-0.5 min-w-0 flex-1 hover:text-emerald-300 transition-colors cursor-pointer"
+                        >
+                          <div className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 truncate">
+                            {item.title}
+                          </div>
+                          <div className="text-[10px] text-zinc-400">
+                            {calc.summaryText}
+                          </div>
+                        </button>
+                        
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDictionaryFood(item, false)}
+                            title="Настроить количество еды"
+                            className="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold transition-all"
+                          >
+                            Указать порцию
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDictionaryFood(item, true)}
+                            title="Быстро добавить 1 порцию"
+                            className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-[10px] font-mono font-bold"
+                          >
+                            +{amount}{item.unit}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 🍲 Настройка количества съеденного (Food Quantity Adjuster) */}
+              {selectedFoodItem && (
+                <div className="bg-zinc-950 border border-emerald-500/50 rounded-2xl p-3.5 space-y-3 shadow-2xl animate-fade-in">
+                  <div className="flex items-start justify-between gap-2 border-b border-zinc-800 pb-2">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1">
+                        <Utensils className="w-3 h-3 text-emerald-400" />
+                        <span>Настройка количества еды</span>
+                      </div>
+                      <div className="text-sm font-bold text-white flex items-center gap-1.5 mt-0.5">
+                        <span>{selectedFoodItem.title}</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400">{selectedFoodItem.description}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFoodItem(null)}
+                      className="text-zinc-400 hover:text-white p-1 rounded-lg bg-zinc-900 border border-zinc-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Интерактивная строка: Количество еды */}
+                  <div className="space-y-2.5 bg-zinc-900/90 border border-zinc-800 p-3 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-zinc-200">
+                        Количество еды / Съедено:
+                      </label>
+                      <div className="flex items-center gap-1.5 font-mono text-xs">
+                        <span className="text-emerald-400 font-bold">{foodPortionAmount} {selectedFoodItem.unit}</span>
+                        <span className="text-zinc-500">({foodMultiplier}x от стандартной)</span>
+                      </div>
+                    </div>
+
+                    {/* Быстрый выбор долей порции (¼, ½, ¾, 1, 1.5, 2) */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Степпер -/+ */}
+                      <div className="flex items-center bg-zinc-950 border border-zinc-700 rounded-lg p-0.5 mr-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMultiplierChange(foodMultiplier - 0.25)}
+                          className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="w-10 text-center text-xs font-mono font-bold text-emerald-400">
+                          {foodMultiplier}x
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleMultiplierChange(foodMultiplier + 0.25)}
+                          className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {[0.25, 0.5, 0.75, 1.0, 1.5, 2.0].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => handleMultiplierChange(preset)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+                            Math.abs(foodMultiplier - preset) < 0.05
+                              ? 'bg-emerald-500 text-black font-bold shadow-md'
+                              : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700'
+                          }`}
+                        >
+                          {preset === 0.25 ? '¼' : preset === 0.5 ? '½' : preset === 0.75 ? '¾' : preset === 1.0 ? '1' : `${preset}`} порции
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Ввод точного веса и слайдер */}
+                    <div className="flex items-center gap-3 pt-1">
+                      <input
+                        type="range"
+                        min={20}
+                        max={Math.max(600, (selectedFoodItem.defaultAmount || 200) * 3)}
+                        step={10}
+                        value={foodPortionAmount}
+                        onChange={(e) => handlePortionAmountChange(parseInt(e.target.value) || 20)}
+                        className="flex-1 accent-emerald-500 cursor-pointer"
+                      />
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          type="number"
+                          min={10}
+                          value={foodPortionAmount}
+                          onChange={(e) => handlePortionAmountChange(parseInt(e.target.value) || 10)}
+                          className="w-16 bg-zinc-950 border border-emerald-500/50 rounded-lg px-2 py-1 text-right text-xs font-bold font-mono text-emerald-400 focus:outline-none"
+                        />
+                        <span className="text-xs text-zinc-400 font-mono">{selectedFoodItem.unit}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* DQS Preview Breakdown */}
+                  {(() => {
+                    const calc = calculatePortion(selectedFoodItem, foodPortionAmount);
+                    return (
+                      <div className="bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl space-y-1.5 text-xs">
+                        <div className="text-[11px] text-zinc-400">
+                          Будет добавлено в DQS-дневник ({foodPortionAmount}{selectedFoodItem.unit}):
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(calc.servings).map(([catId, val]) => {
+                            const catInfo = DQS_CATEGORIES.find((c) => c.id === catId);
+                            if (!catInfo || !val) return null;
+                            const isPositive = catInfo.group === 'positive';
+                            return (
+                              <span
+                                key={catId}
+                                className={`px-2 py-1 rounded-md text-[11px] font-bold border ${
+                                  isPositive
+                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                                    : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                                }`}
+                              >
+                                {catInfo.nameRu}: +{val}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Кнопка добавления */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFoodItem(null)}
+                      className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold cursor-pointer"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmAddConfiguredFood}
+                      className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                      <span>Добавить {foodMultiplier} порции ({foodPortionAmount}{selectedFoodItem.unit})</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -517,14 +982,30 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="pt-2">
+            {/* Save & Delete Buttons */}
+            <div className="pt-2 flex items-center gap-2">
+              {initialMealToEdit && (
+                <button
+                  type="button"
+                  onClick={handleDeleteThisMeal}
+                  className="px-3 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                  title="Удалить приём пищи"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Удалить</span>
+                </button>
+              )}
               <button
+                type="button"
                 onClick={handleSaveMeal}
-                className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
               >
                 <Zap className="w-4 h-4 fill-black" />
-                <span>Сохранить прием пищи ({totalAddedCount} порций)</span>
+                <span>
+                  {initialMealToEdit
+                    ? `Сохранить изменения (${totalAddedCount} порций)`
+                    : `Сохранить прием пищи (${totalAddedCount} порций)`}
+                </span>
               </button>
             </div>
           </div>

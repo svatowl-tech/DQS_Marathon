@@ -1,13 +1,12 @@
 @import "tailwindcss";
 
 @layer base {
-  body {
-    @apply bg-[#09090b] text-zinc-100 antialiased selection:bg-emerald-500 selection:text-black;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  :root {
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   }
 }
 
-/* Custom Scrollbar for sleek UI */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -18,10 +17,350 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* =========================================================
+   SOOTHING EYE-FRIENDLY LIGHT THEME SYSTEM (html.light)
+   Low-glare, eye-pleasing, soft neutral light palette
+   ========================================================= */
+
+html.light {
+  color-scheme: light;
+}
+
+/* 1. Global Page Background & Body Canvas */
+html.light,
+html.light body,
+html.light #root,
+html.light .app-main-wrapper {
+  background-color: #ebedf0 !important; /* Soft warm eye-friendly neutral */
+  color: #1e293b !important; /* Soft charcoal text */
+}
+
+/* 2. Header & Main Navbar */
+html.light header,
+html.light nav {
+  background-color: #ffffff !important;
+  border-color: #dbe0e6 !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 3. Footer */
+html.light footer {
+  background-color: #ffffff !important;
+  border-color: #dbe0e6 !important;
+  color: #64748b !important;
+}
+
+/* 4. Main Cards & Panel Containers */
+html.light div[class*="bg-[#"],
+html.light div[class*="bg-zinc-9"],
+html.light div[class*="bg-slate-9"],
+html.light div[class*="bg-black"],
+html.light section[class*="bg-[#"],
+html.light section[class*="bg-zinc-9"],
+html.light section[class*="bg-slate-9"],
+html.light article[class*="bg-[#"] {
+  background-color: #ffffff !important;
+  border-color: #dbe0e6 !important;
+  color: #1e293b !important;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.04), 0 1px 3px -1px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* 5. Inverted Dark Gradients to Soft Light Panels */
+html.light [class*="from-[#"],
+html.light [class*="from-zinc-9"],
+html.light [class*="from-slate-9"],
+html.light [class*="from-black"] {
+  background-color: #ffffff !important;
+  background-image: linear-gradient(to bottom, #ffffff, #f4f6f8) !important;
+  border-color: #dbe0e6 !important;
+  color: #1e293b !important;
+}
+
+/* 6. Sub-cards & Inset Containers (bg-white/5, bg-white/10, bg-black/40, bg-zinc-800, etc.) */
+html.light [class*="bg-white/"],
+html.light [class*="bg-black/"],
+html.light [class*="bg-zinc-800"],
+html.light [class*="bg-zinc-900/"] {
+  background-color: #f1f4f8 !important; /* Gentle inset grey surface */
+  border-color: #dbe0e6 !important;
+  color: #1e293b !important;
+}
+
+/* 7. PARTICIPANT PROFILE CARD SPECIFIC LIGHT MODE OVERRIDES */
+html.light .profile-card-export-wrapper {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #fcd34d !important; /* Gentle amber accent border */
+  color: #1e293b !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .profile-card-export-wrapper h2,
+html.light .profile-card-export-wrapper h3,
+html.light .profile-card-export-wrapper h4 {
+  color: #0f172a !important;
+}
+
+html.light .profile-card-export-wrapper .bg-zinc-900 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Stat boxes inside Participant Profile Card */
+html.light .profile-card-export-wrapper [class*="bg-emerald-500/"] {
+  background-color: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  color: #166534 !important;
+}
+
+html.light .profile-card-export-wrapper [class*="bg-indigo-500/"] {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #3730a3 !important;
+}
+
+html.light .profile-card-export-wrapper [class*="bg-rose-500/"] {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #9f1239 !important;
+}
+
+html.light .profile-card-export-wrapper [class*="bg-amber-500/"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+}
+
+/* Stat values inside Profile Card */
+html.light .profile-card-export-wrapper .text-white {
+  color: #0f172a !important;
+}
+
+/* Start date badge inside Profile Card */
+html.light .profile-card-export-wrapper .font-mono {
+  color: #334155 !important;
+}
+
+/* 8. Typography High-Contrast Control */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #0f172a !important; /* Soft dark slate heading */
+}
+
+html.light [class*="text-zinc-100"],
+html.light [class*="text-zinc-200"],
+html.light [class*="text-slate-100"],
+html.light [class*="text-slate-200"],
+html.light .text-white {
+  color: #1e293b !important;
+}
+
+html.light [class*="text-zinc-300"],
+html.light [class*="text-slate-300"] {
+  color: #334155 !important;
+}
+
+html.light [class*="text-zinc-400"],
+html.light [class*="text-slate-400"] {
+  color: #475569 !important;
+}
+
+html.light [class*="text-zinc-500"],
+html.light [class*="text-slate-500"] {
+  color: #64748b !important;
+}
+
+/* Yellow / Amber text in light mode should be dark amber for readability */
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #b45309 !important;
+}
+
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+html.light .text-indigo-300,
+html.light .text-indigo-400 {
+  color: #4338ca !important;
+}
+
+html.light .text-rose-300,
+html.light .text-rose-400 {
+  color: #be123c !important;
+}
+
+html.light .text-sky-300,
+html.light .text-sky-400 {
+  color: #0369a1 !important;
+}
+
+/* 9. Action Buttons (Preserve button contrast) */
+html.light button.bg-emerald-500,
+html.light button.bg-amber-500,
+html.light button.bg-emerald-400,
+html.light button.bg-amber-400,
+html.light .bg-emerald-500,
+html.light .bg-amber-500 {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+html.light button.bg-emerald-500 *,
+html.light button.bg-amber-500 *,
+html.light .bg-emerald-500 *,
+html.light .bg-amber-500 * {
+  color: #ffffff !important;
+}
+
+html.light .bg-indigo-600,
+html.light .bg-indigo-600 *,
+html.light .bg-emerald-600,
+html.light .bg-emerald-600 *,
+html.light .bg-sky-600,
+html.light .bg-sky-600 *,
+html.light .bg-rose-600,
+html.light .bg-rose-600 * {
+  color: #ffffff !important;
+}
+
+/* 10. Soft Pastel Status Pills, Badges & Chips */
+html.light [class*="bg-emerald-500/"],
+html.light [class*="bg-emerald-400/"] {
+  background-color: #e6f4ea !important; /* Soft pastel mint */
+  color: #137333 !important; /* Gentle dark green */
+  border-color: #ceead6 !important;
+}
+
+html.light [class*="bg-emerald-500/"] *,
+html.light [class*="bg-emerald-400/"] * {
+  color: #137333 !important;
+}
+
+html.light [class*="bg-amber-500/"],
+html.light [class*="bg-amber-400/"] {
+  background-color: #fef7e0 !important; /* Soft warm cream */
+  color: #b06000 !important; /* Gentle amber */
+  border-color: #feefc3 !important;
+}
+
+html.light [class*="bg-amber-500/"] *,
+html.light [class*="bg-amber-400/"] * {
+  color: #b06000 !important;
+}
+
+html.light [class*="bg-sky-500/"],
+html.light [class*="bg-sky-400/"] {
+  background-color: #e8f0fe !important; /* Soft ice blue */
+  color: #1a73e8 !important;
+  border-color: #d2e3fc !important;
+}
+
+html.light [class*="bg-sky-500/"] *,
+html.light [class*="bg-sky-400/"] * {
+  color: #1a73e8 !important;
+}
+
+html.light [class*="bg-indigo-500/"],
+html.light [class*="bg-indigo-400/"] {
+  background-color: #f3e8ff !important; /* Soft lavender */
+  color: #6b21a8 !important;
+  border-color: #e9d5ff !important;
+}
+
+html.light [class*="bg-indigo-500/"] *,
+html.light [class*="bg-indigo-400/"] * {
+  color: #6b21a8 !important;
+}
+
+html.light [class*="bg-rose-500/"],
+html.light [class*="bg-rose-400/"] {
+  background-color: #fce8e6 !important; /* Soft rose */
+  color: #c5221f !important;
+  border-color: #fad2cf !important;
+}
+
+html.light [class*="bg-rose-500/"] *,
+html.light [class*="bg-rose-400/"] * {
+  color: #c5221f !important;
+}
+
+/* 11. Input Controls, Selects & Textareas */
+html.light input[type="text"],
+html.light input[type="number"],
+html.light input[type="date"],
+html.light input[type="time"],
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 12. Borders */
+html.light [class*="border-white"],
+html.light [class*="border-zinc-8"],
+html.light [class*="border-zinc-7"],
+html.light [class*="border-slate-8"],
+html.light [class*="border-slate-7"] {
+  border-color: #dbe0e6 !important;
+}
+
+/* 13. Tables */
+html.light table th {
+  background-color: #f1f4f8 !important;
+  color: #1e293b !important;
+  border-color: #dbe0e6 !important;
+}
+
+html.light table td {
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html.light table tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* 14. Modals Backdrop */
+html.light .fixed.inset-0.bg-black\/80,
+html.light .fixed.inset-0.bg-black\/70,
+html.light .fixed.inset-0.bg-black\/60,
+html.light .fixed.inset-0.bg-black\/50 {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* 15. Interactive Hovers in Light Mode */
+html.light [class*="hover:bg-white/"]:hover,
+html.light [class*="hover:bg-black/"]:hover {
+  background-color: #e2e8f0 !important;
 }
