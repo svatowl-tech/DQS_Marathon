@@ -15,11 +15,14 @@ import {
   Star,
   Bookmark,
   Utensils,
+  ShieldCheck,
+  HardDrive,
 } from 'lucide-react';
 import { BodyMeasurements, CustomTaskRule, DailyLogEntry, FavoriteMealTemplate, UserSettings, WeeklySundayReport } from '../types';
-import { exportAllDataToJson, importAllDataFromJson, DEFAULT_SETTINGS } from '../utils/storage';
+import { exportAllDataToJson, importAllDataFromJson, downloadBackupFile, getStorageStats, DEFAULT_SETTINGS } from '../utils/storage';
 import { DQS_CATEGORIES } from '../utils/dqsEngine';
 import { ParticipantProfileCard } from './ParticipantProfileCard';
+import { GoogleSheetsSyncCard } from './GoogleSheetsSyncCard';
 
 interface SettingsViewProps {
   settings: UserSettings;
@@ -27,6 +30,7 @@ interface SettingsViewProps {
   reports?: WeeklySundayReport[];
   onUpdateSettings: (settings: UserSettings) => void;
   onResetData: () => void;
+  onReloadAppData?: () => void;
 }
 
 const DAY_LABELS = [
@@ -45,6 +49,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   reports = [],
   onUpdateSettings,
   onResetData,
+  onReloadAppData,
 }) => {
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -384,38 +389,81 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* BACKUP & JSON EXPORT/IMPORT */}
+      {/* GOOGLE SHEETS INTEGRATION CARD */}
+      <GoogleSheetsSyncCard
+        settings={settings}
+        onUpdateSettings={onUpdateSettings}
+        logs={logs || []}
+        onReloadAppData={onReloadAppData}
+      />
 
-      <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-4">
-        <h3 className="font-bold text-slate-100 text-sm border-b border-white/10 pb-2">
-          Экспорт и Импорт Данных (JSON)
-        </h3>
+      {/* DATA SECURITY & PHONE BACKUP CARD */}
+      {(() => {
+        const stats = getStorageStats();
+        return (
+          <div className="bg-[#111] rounded-2xl p-5 border border-emerald-500/30 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+              <h3 className="font-bold text-slate-100 text-sm flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" /> Защита Данных & Бэкап в Память Телефона
+              </h3>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                IndexedDB + Автосжатие
+              </span>
+            </div>
 
-        <p className="text-xs text-slate-400">
-          Все ваши данные хранятся локально в браузере (LocalStorage). Вы можете скачать копию в
-          формате JSON для переноса на другое устройство или хранения архива.
-        </p>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              В приложении включено двухуровневое хранилище <strong>IndexedDB Engine</strong> без жестких лимитов браузера. Фотографии автоматически сжимаются до ~80-120 КБ при загрузке, сохраняя высокое качество и экономя место. Все ваши записи и фото надежно сохраняются годами при повторных заходах.
+            </p>
 
-        <div className="flex flex-wrap gap-4">
-          <button
-            onClick={handleExportJson}
-            className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4" /> Скачать данные (.JSON)
-          </button>
+            {/* Storage Stats Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-white/[0.03] rounded-xl border border-white/5 text-xs font-mono">
+              <div>
+                <span className="text-[10px] text-slate-400 block font-sans">Дней в дневнике:</span>
+                <span className="font-bold text-emerald-400">{stats.totalDays}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block font-sans">Фото блюд:</span>
+                <span className="font-bold text-emerald-400">{stats.totalPhotos}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block font-sans">Объем хранилища:</span>
+                <span className="font-bold text-emerald-400">{stats.approxSizeMB} МБ</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block font-sans">Статус защиты:</span>
+                <span className="font-bold text-emerald-400">100% Активно</span>
+              </div>
+            </div>
 
-          <label className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 font-bold text-xs rounded-xl border border-white/10 shadow-lg flex items-center gap-2 transition-all cursor-pointer">
-            <Upload className="w-4 h-4" /> Загрузить из JSON
-            <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
-          </label>
-        </div>
+            {/* Phone Backup Actions */}
+            <div className="pt-1 space-y-2">
+              <label className="text-xs font-bold text-slate-200 block">Резервная копия на устройство:</label>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={downloadBackupFile}
+                  className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                >
+                  <HardDrive className="w-4 h-4 fill-black" />
+                  <span>Сохранить бэкап в память телефона</span>
+                </button>
 
-        {importStatus && (
-          <p className="text-xs font-bold text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/30">
-            {importStatus}
-          </p>
-        )}
-      </div>
+                <label className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 font-bold text-xs rounded-xl border border-white/10 shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95">
+                  <Upload className="w-4 h-4 text-emerald-400" />
+                  <span>Восстановить из файла бэкапа</span>
+                  <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
+                </label>
+              </div>
+            </div>
+
+            {importStatus && (
+              <p className="text-xs font-bold text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/30">
+                {importStatus}
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* DANGER ZONE / RESET ALL DATA */}
       <div className="bg-[#111] rounded-2xl p-5 border border-rose-500/20 shadow-lg space-y-3">

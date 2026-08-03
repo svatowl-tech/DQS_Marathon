@@ -13,6 +13,7 @@ import {
   saveDailyLogs,
   saveSettings,
   saveSundayReports,
+  hydrateFromIndexedDB,
   DEFAULT_SETTINGS,
 } from './utils/storage';
 import { calculateDailyDQS, getInitialDiversity, getInitialServings } from './utils/dqsEngine';
@@ -125,11 +126,21 @@ export default function App() {
     setIsExtendedPdfModalOpen(true);
   };
 
-  // Automatically trigger wizard on first load if user hasn't started yet
+  // Hydrate state asynchronously from IndexedDB engine on startup
   useEffect(() => {
-    if (!settings.isStarted && !settings.userName && logs.length === 0) {
-      // Keep modal available for user to open
+    async function initIndexedDBHydration() {
+      const hydrated = await hydrateFromIndexedDB();
+      if (hydrated.logs && hydrated.logs.length > 0) {
+        setLogs(hydrated.logs);
+      }
+      if (hydrated.settings) {
+        setSettings(hydrated.settings);
+      }
+      if (hydrated.reports && hydrated.reports.length > 0) {
+        setReports(hydrated.reports);
+      }
     }
+    initIndexedDBHydration();
   }, []);
 
   const handleStartApp = (newSettings: UserSettings) => {
@@ -245,6 +256,19 @@ export default function App() {
     }
   };
 
+  const handleReloadAppData = async () => {
+    const hydrated = await hydrateFromIndexedDB();
+    if (hydrated.logs && hydrated.logs.length > 0) {
+      setLogs(hydrated.logs);
+    }
+    if (hydrated.settings) {
+      setSettings(hydrated.settings);
+    }
+    if (hydrated.reports && hydrated.reports.length > 0) {
+      setReports(hydrated.reports);
+    }
+  };
+
   const currentLog = getSelectedLog();
 
   const getTodayLog = (): DailyLogEntry => {
@@ -342,6 +366,7 @@ export default function App() {
             reports={reports}
             onUpdateSettings={setSettings}
             onResetData={handleResetData}
+            onReloadAppData={handleReloadAppData}
           />
         )}
       </main>

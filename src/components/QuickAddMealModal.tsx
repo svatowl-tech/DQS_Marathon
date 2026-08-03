@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { CategoryId, DailyLogEntry, FavoriteMealTemplate, UserSettings } from '../types';
 import { DQS_CATEGORIES, calculateDailyDQS } from '../utils/dqsEngine';
+import { compressImage } from '../utils/imageCompressor';
 
 interface QuickAddMealModalProps {
   isOpen: boolean;
@@ -135,14 +136,15 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
     }));
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 1000, 0.75);
+        setPhotoUrl(compressed);
+      } catch (err) {
+        console.error('Photo compression failed', err);
+      }
     }
   };
 

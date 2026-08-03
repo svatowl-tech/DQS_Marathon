@@ -29,11 +29,13 @@ import { CategoryId, DailyLogEntry, PhotoEntry, UserSettings } from '../types';
 import {
   DQS_CATEGORIES,
   calculateDailyDQS,
+  calculatePredictedCalories,
   formatDateRu,
   getCategoryPoints,
   getDayOfWeekRu,
 } from '../utils/dqsEngine';
 import { getFormattedLocalDate, parseLocalDate } from '../utils/timeZoneService';
+import { compressImage } from '../utils/imageCompressor';
 import { QuickMealBuilder } from './QuickMealBuilder';
 import { ExportDailyReportModal } from './ExportDailyReportModal';
 
@@ -100,74 +102,42 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
     });
   };
 
-  // Photo upload handler with TimeMark Watermark generator
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Photo upload handler with TimeMark Watermark generator & auto-compression
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          // Draw image onto canvas to apply TimeMark timestamp watermark
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
+    const newPhotos: PhotoEntry[] = [];
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const dateStr = formatDateRu(log.date);
 
-          canvas.width = img.width;
-          canvas.height = img.height;
+    for (const file of Array.from(files) as File[]) {
+      try {
+        const compressedDataUrl = await compressImage(file, 1000, 0.75, {
+          timeStr,
+          dateStr,
+          label: 'TimeMark DQS',
+        });
 
-          // Draw original image
-          ctx.drawImage(img, 0, 0);
+        newPhotos.push({
+          id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 4),
+          dataUrl: compressedDataUrl,
+          mealType: 'lunch',
+          timestamp: timeStr,
+          caption: '',
+        });
+      } catch (err) {
+        console.error('Error compressing photo:', err);
+      }
+    }
 
-          // Watermark styling (TimeMark Camera style)
-          const now = new Date();
-          const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
-            now.getMinutes()
-          ).padStart(2, '0')}`;
-          const dateStr = formatDateRu(log.date);
-
-          // Bottom left overlay rectangle
-          const overlayHeight = Math.max(60, canvas.height * 0.12);
-          const fontSize = Math.max(24, Math.floor(canvas.height * 0.05));
-
-          // Draw dark semi-transparent gradient
-          const grad = ctx.createLinearGradient(0, canvas.height - overlayHeight, 0, canvas.height);
-          grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-          grad.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, canvas.height - overlayHeight, canvas.width, overlayHeight);
-
-          // Time text
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${fontSize * 1.4}px sans-serif`;
-          ctx.fillText(timeStr, 20, canvas.height - 35);
-
-          // Date & watermark label
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = `${fontSize * 0.5}px sans-serif`;
-          ctx.fillText(`${dateStr} | TimeMark DQS`, 20, canvas.height - 15);
-
-          const watermarkedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-          const newPhoto: PhotoEntry = {
-            id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 4),
-            dataUrl: watermarkedDataUrl,
-            mealType: 'lunch',
-            timestamp: timeStr,
-            caption: '',
-          };
-
-          onUpdateLog({
-            ...log,
-            photos: [...log.photos, newPhoto],
-          });
-        };
-      };
-      reader.readAsDataURL(file);
-    });
+    if (newPhotos.length > 0) {
+      onUpdateLog({
+        ...log,
+        photos: [...log.photos, ...newPhotos],
+      });
+    }
   };
 
   const handleDeletePhoto = (id: string) => {
@@ -711,6 +681,74 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
           </div>
         </div>
 
+        {/* Calories Comparison Row (Fact vs DQS Forecast) */}
+        {(() => {
+          const predictedKcal = calculatePredictedCalories(log.servings);
+          const deltaKcal = typeof log.actualCalories === 'number' ? log.actualCalories - predictedKcal : null;
+
+          return (
+            <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Flame className="w-4 h-4 text-amber-400" /> Калории дня (Факт по трекеру vs Прогноз по DQS)
+                </label>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  Формула из таблицы Марафона DQS
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {/* Actual Calories Input */}
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 block font-medium">
+                    Калории факт (FatSecret / Yazio)
+                  </span>
+                  <input
+                    type="number"
+                    placeholder="Например 1850"
+                    value={log.actualCalories ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      onUpdateLog({
+                        ...log,
+                        actualCalories: val === '' ? undefined : parseInt(val, 10) || undefined,
+                        predictedCalories: predictedKcal,
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl font-mono font-bold text-amber-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Predicted DQS Calories */}
+                <div className="p-2.5 bg-black/40 border border-white/10 rounded-xl flex flex-col justify-center">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Прогноз ккал по DQS порциям
+                  </span>
+                  <span className="font-mono font-bold text-emerald-400 text-base">
+                    {predictedKcal} <span className="text-xs font-normal text-slate-400">ккал</span>
+                  </span>
+                </div>
+
+                {/* Delta Calories */}
+                <div className="p-2.5 bg-black/40 border border-white/10 rounded-xl flex flex-col justify-center">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Дельта (Факт - Прогноз)
+                  </span>
+                  <span className={`font-mono font-bold text-base ${
+                    deltaKcal === null
+                      ? 'text-slate-500'
+                      : deltaKcal > 0
+                      ? 'text-rose-400'
+                      : 'text-emerald-400'
+                  }`}>
+                    {deltaKcal !== null ? `${deltaKcal > 0 ? '+' : ''}${deltaKcal} ккал` : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Not on photo field */}
         <div className="space-y-1 pt-2">
           <label className="text-xs font-bold text-slate-300 flex items-center gap-1">
@@ -813,62 +851,185 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
         </div>
 
         {/* Optional Trackers: Water, Coffee, Sleep */}
-        <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/10 text-xs">
-          <div className="flex items-center gap-2">
-            <Droplets className="w-4 h-4 text-emerald-400" />
-            <div>
-              <p className="text-[10px] text-slate-400">Вода (стаканы)</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10 text-xs">
+          {/* Water Tracker */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div>
+                <p className="text-[11px] font-bold text-slate-200">Вода</p>
+                <p className="text-[9px] text-slate-400">стаканы</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateLog({
+                    ...log,
+                    trackers: {
+                      ...log.trackers,
+                      waterGlass: Math.max(0, (log.trackers.waterGlass || 0) - 1),
+                    },
+                  })
+                }
+                className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-slate-200 hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
               <input
                 type="number"
                 min="0"
-                value={log.trackers.waterGlass ?? 0}
-                onChange={(e) =>
+                placeholder="0"
+                value={log.trackers.waterGlass ? String(log.trackers.waterGlass) : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
                   onUpdateLog({
                     ...log,
-                    trackers: { ...log.trackers, waterGlass: parseInt(e.target.value, 10) || 0 },
+                    trackers: {
+                      ...log.trackers,
+                      waterGlass: val === '' ? undefined : Math.max(0, parseInt(val, 10) || 0),
+                    },
+                  });
+                }}
+                className="w-10 text-center font-mono font-bold text-emerald-400 text-sm bg-transparent focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateLog({
+                    ...log,
+                    trackers: {
+                      ...log.trackers,
+                      waterGlass: (log.trackers.waterGlass || 0) + 1,
+                    },
                   })
                 }
-                className="w-16 bg-white/5 border border-white/10 rounded-md px-1.5 py-0.5 text-xs font-mono font-bold text-slate-100"
-              />
+                className="w-7 h-7 rounded-lg bg-emerald-500 text-black flex items-center justify-center font-bold hover:bg-emerald-400 active:scale-95 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Coffee className="w-4 h-4 text-amber-400" />
-            <div>
-              <p className="text-[10px] text-slate-400">Кофе (чашки)</p>
+          {/* Coffee Tracker */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-2">
+              <Coffee className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <p className="text-[11px] font-bold text-slate-200">Кофе</p>
+                <p className="text-[9px] text-slate-400">чашки</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateLog({
+                    ...log,
+                    trackers: {
+                      ...log.trackers,
+                      coffeeCups: Math.max(0, (log.trackers.coffeeCups || 0) - 1),
+                    },
+                  })
+                }
+                className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-slate-200 hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
               <input
                 type="number"
                 min="0"
-                value={log.trackers.coffeeCups ?? 0}
-                onChange={(e) =>
+                placeholder="0"
+                value={log.trackers.coffeeCups ? String(log.trackers.coffeeCups) : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
                   onUpdateLog({
                     ...log,
-                    trackers: { ...log.trackers, coffeeCups: parseInt(e.target.value, 10) || 0 },
+                    trackers: {
+                      ...log.trackers,
+                      coffeeCups: val === '' ? undefined : Math.max(0, parseInt(val, 10) || 0),
+                    },
+                  });
+                }}
+                className="w-10 text-center font-mono font-bold text-amber-400 text-sm bg-transparent focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateLog({
+                    ...log,
+                    trackers: {
+                      ...log.trackers,
+                      coffeeCups: (log.trackers.coffeeCups || 0) + 1,
+                    },
                   })
                 }
-                className="w-16 bg-white/5 border border-white/10 rounded-md px-1.5 py-0.5 text-xs font-mono font-bold text-slate-100"
-              />
+                className="w-7 h-7 rounded-lg bg-amber-500 text-black flex items-center justify-center font-bold hover:bg-amber-400 active:scale-95 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Moon className="w-4 h-4 text-sky-400" />
-            <div>
-              <p className="text-[10px] text-slate-400">Сон (часов)</p>
+          {/* Sleep Tracker */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-2">
+              <Moon className="w-4 h-4 text-sky-400 shrink-0" />
+              <div>
+                <p className="text-[11px] font-bold text-slate-200">Сон</p>
+                <p className="text-[9px] text-slate-400">часов</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateLog({
+                    ...log,
+                    trackers: {
+                      ...log.trackers,
+                      sleepHours: Math.max(0, Math.round(((log.trackers.sleepHours || 0) - 0.5) * 10) / 10),
+                    },
+                  })
+                }
+                className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-slate-200 hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
               <input
                 type="number"
                 step="0.5"
                 min="0"
-                value={log.trackers.sleepHours ?? 0}
-                onChange={(e) =>
+                placeholder="0"
+                value={log.trackers.sleepHours ? String(log.trackers.sleepHours) : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
                   onUpdateLog({
                     ...log,
-                    trackers: { ...log.trackers, sleepHours: parseFloat(e.target.value) || 0 },
+                    trackers: {
+                      ...log.trackers,
+                      sleepHours: val === '' ? undefined : Math.max(0, parseFloat(val) || 0),
+                    },
+                  });
+                }}
+                className="w-10 text-center font-mono font-bold text-sky-400 text-sm bg-transparent focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateLog({
+                    ...log,
+                    trackers: {
+                      ...log.trackers,
+                      sleepHours: Math.round(((log.trackers.sleepHours || 0) + 0.5) * 10) / 10,
+                    },
                   })
                 }
-                className="w-16 bg-white/5 border border-white/10 rounded-md px-1.5 py-0.5 text-xs font-mono font-bold text-slate-100"
-              />
+                className="w-7 h-7 rounded-lg bg-sky-500 text-black flex items-center justify-center font-bold hover:bg-sky-400 active:scale-95 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>

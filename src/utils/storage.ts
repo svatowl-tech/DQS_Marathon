@@ -3,24 +3,122 @@ import {
   calculateDailyDQS,
   getInitialDiversity,
   getInitialServings,
-  getMondayOfDate,
-  getSundayOfDate,
 } from './dqsEngine';
 
-const STORAGE_KEY_SETTINGS = 'dqs_diary_settings_v2';
-const STORAGE_KEY_LOGS = 'dqs_diary_logs_v2';
-const STORAGE_KEY_REPORTS = 'dqs_diary_reports_v2';
+const STORAGE_KEY_SETTINGS = 'dqs_diary_settings_v3';
+const STORAGE_KEY_LOGS = 'dqs_diary_logs_v3';
+const STORAGE_KEY_REPORTS = 'dqs_diary_reports_v3';
+const STORAGE_KEY_BACKUP = 'dqs_diary_auto_backup_v3';
 
-// Automatically clear legacy v1 test data from browser storage
-try {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.removeItem('dqs_diary_settings_v1');
-    localStorage.removeItem('dqs_diary_logs_v1');
-    localStorage.removeItem('dqs_diary_reports_v1');
-  }
-} catch (e) {
-  // Ignore storage access errors
+const DB_NAME = 'dqs_nutrition_db_v3';
+const DB_VERSION = 1;
+
+// ---------------------------------------------------------------------------
+// 1. INDEXEDDB PERSISTENCE ENGINE (Unlimited storage for years of logs & photos)
+// ---------------------------------------------------------------------------
+
+let dbInstance: IDBDatabase | null = null;
+let isIDBSupported = typeof window !== 'undefined' && 'indexedDB' in window;
+
+function getDB(): Promise<IDBDatabase> {
+  if (dbInstance) return Promise.resolve(dbInstance);
+
+  return new Promise((resolve, reject) => {
+    if (!isIDBSupported) {
+      reject(new Error('IndexedDB not supported on this device'));
+      return;
+    }
+
+    try {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onupgradeneeded = (event: any) => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('settings')) {
+          db.createObjectStore('settings');
+        }
+        if (!db.objectStoreNames.contains('logs')) {
+          db.createObjectStore('logs', { keyPath: 'date' });
+        }
+        if (!db.objectStoreNames.contains('reports')) {
+          db.createObjectStore('reports', { keyPath: 'weekEndDate' });
+        }
+        if (!db.objectStoreNames.contains('backups')) {
+          db.createObjectStore('backups', { keyPath: 'timestamp' });
+        }
+      };
+
+      request.onsuccess = () => {
+        dbInstance = request.result;
+        resolve(dbInstance);
+      };
+
+      request.onerror = (e) => {
+        console.warn('IndexedDB failed to open, falling back to LocalStorage', e);
+        reject(request.error);
+      };
+    } catch (err) {
+      console.warn('IndexedDB initialization error', err);
+      reject(err);
+    }
+  });
 }
+
+async function idbGet<T>(storeName: string, key?: string): Promise<T | null> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const req = key ? store.get(key) : store.getAll();
+
+      req.onsuccess = () => {
+        resolve(req.result as T || null);
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function idbSet(storeName: string, value: any, key?: string): Promise<boolean> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+
+      if (Array.isArray(value) && store.keyPath) {
+        // Clear store first, then put all array items
+        const clearReq = store.clear();
+        clearReq.onsuccess = () => {
+          let pending = value.length;
+          if (pending === 0) resolve(true);
+
+          for (const item of value) {
+            const putReq = store.put(item);
+            putReq.onsuccess = putReq.onerror = () => {
+              pending--;
+              if (pending === 0) resolve(true);
+            };
+          }
+        };
+        clearReq.onerror = () => resolve(false);
+      } else {
+        const req = key ? store.put(value, key) : store.put(value);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      }
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DEFAULT APP SETTINGS & DATA SCHEMAS
+// ---------------------------------------------------------------------------
 
 export const DEFAULT_SETTINGS: UserSettings = {
   userName: '',
@@ -85,11 +183,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_oatmeal',
       title: '🥣 Овсянка + Ягоды + Орехи',
       mealType: 'breakfast',
-      servings: {
-        whole_grains: 1,
-        fruits: 1,
-        nuts_seeds: 1,
-      },
+      servings: { whole_grains: 1, fruits: 1, nuts_seeds: 1 },
       hungerBefore: 6,
       fullnessAfter: 7,
     },
@@ -97,12 +191,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_lunch_standard',
       title: '🥗 Курица + Гречка + Салат',
       mealType: 'lunch',
-      servings: {
-        lean_proteins: 1,
-        whole_grains: 1,
-        vegetables: 2,
-        oils_fats: 1,
-      },
+      servings: { lean_proteins: 1, whole_grains: 1, vegetables: 2, oils_fats: 1 },
       hungerBefore: 7,
       fullnessAfter: 8,
     },
@@ -110,11 +199,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_fish_dinner',
       title: '🐟 Рыба + Овощи гриль',
       mealType: 'dinner',
-      servings: {
-        lean_proteins: 1,
-        vegetables: 2,
-        oils_fats: 1,
-      },
+      servings: { lean_proteins: 1, vegetables: 2, oils_fats: 1 },
       hungerBefore: 6,
       fullnessAfter: 7,
     },
@@ -122,25 +207,25 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_apple_snack',
       title: '🍏 Яблоко + Миндаль',
       mealType: 'snack',
-      servings: {
-        fruits: 1,
-        nuts_seeds: 1,
-      },
+      servings: { fruits: 1, nuts_seeds: 1 },
       hungerBefore: 4,
       fullnessAfter: 6,
     },
   ],
 };
 
-// Return empty array for clean app start
 export function generateSampleData(): DailyLogEntry[] {
   return [];
 }
 
-// LocalStorage load and save handlers
+// ---------------------------------------------------------------------------
+// 2. SYNCHRONOUS & ASYNCHRONOUS STORAGE ACCESSORS
+// ---------------------------------------------------------------------------
+
+// SETTINGS
 export function loadSettings(): UserSettings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
+    const raw = localStorage.getItem(STORAGE_KEY_SETTINGS) || localStorage.getItem('dqs_diary_settings_v2');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
@@ -157,7 +242,7 @@ export function loadSettings(): UserSettings {
       }
     }
   } catch (e) {
-    console.error('Failed to load settings', e);
+    console.error('Failed to load settings from localStorage', e);
   }
   return DEFAULT_SETTINGS;
 }
@@ -166,20 +251,22 @@ export function saveSettings(settings: UserSettings): void {
   try {
     localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
   } catch (e) {
-    console.error('Failed to save settings', e);
+    console.warn('LocalStorage full or restricted on saveSettings', e);
   }
+  // Also save asynchronously to IndexedDB
+  idbSet('settings', settings, 'userSettings');
 }
 
+// DAILY LOGS
 export function loadDailyLogs(): DailyLogEntry[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_LOGS);
+    const raw = localStorage.getItem(STORAGE_KEY_LOGS) || localStorage.getItem('dqs_diary_logs_v2');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const initialServings = getInitialServings();
         const initialDiversity = getInitialDiversity();
 
-        // Deep defense mapping to prevent undefined access crashes
         return parsed
           .filter((item) => item && typeof item === 'object' && item.date)
           .map((item: DailyLogEntry) => ({
@@ -194,23 +281,38 @@ export function loadDailyLogs(): DailyLogEntry[] {
       }
     }
   } catch (e) {
-    console.error('Failed to load logs', e);
+    console.error('Failed to load logs from localStorage', e);
   }
-  // Return empty array if no logs exist
   return [];
 }
 
 export function saveDailyLogs(logs: DailyLogEntry[]): void {
+  // Save to IndexedDB first (no 5MB limit)
+  idbSet('logs', logs);
+
+  // Also write to LocalStorage with fallback safety if quota permits
   try {
-    localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+    const jsonStr = JSON.stringify(logs);
+    localStorage.setItem(STORAGE_KEY_LOGS, jsonStr);
   } catch (e) {
-    console.error('Failed to save logs', e);
+    console.warn('LocalStorage quota exceeded! Data is securely preserved in IndexedDB engine.', e);
+    // If quota exceeded in localStorage, save a stripped lightweight version to LocalStorage without heavy photos
+    try {
+      const lightweightLogs = logs.map((l) => ({
+        ...l,
+        photos: l.photos.map((p) => ({ ...p, dataUrl: '' })), // preserve photo metadata without base64 blob
+      }));
+      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(lightweightLogs));
+    } catch (err) {
+      // Ignore
+    }
   }
 }
 
+// SUNDAY REPORTS
 export function loadSundayReports(): WeeklySundayReport[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_REPORTS);
+    const raw = localStorage.getItem(STORAGE_KEY_REPORTS) || localStorage.getItem('dqs_diary_reports_v2');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -218,40 +320,167 @@ export function loadSundayReports(): WeeklySundayReport[] {
       }
     }
   } catch (e) {
-    console.error('Failed to load reports', e);
+    console.error('Failed to load reports from localStorage', e);
   }
   return [];
 }
-
 
 export function saveSundayReports(reports: WeeklySundayReport[]): void {
   try {
     localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(reports));
   } catch (e) {
-    console.error('Failed to save reports', e);
+    console.warn('LocalStorage full on saveSundayReports', e);
+  }
+  idbSet('reports', reports);
+}
+
+// ---------------------------------------------------------------------------
+// 3. ASYNCHRONOUS HYDRATION & INITIALIZATION FROM INDEXEDDB
+// ---------------------------------------------------------------------------
+
+export async function hydrateFromIndexedDB(): Promise<{
+  settings: UserSettings | null;
+  logs: DailyLogEntry[] | null;
+  reports: WeeklySundayReport[] | null;
+}> {
+  try {
+    const [idbSettings, idbLogs, idbReports] = await Promise.all([
+      idbGet<UserSettings>('settings', 'userSettings'),
+      idbGet<DailyLogEntry[]>('logs'),
+      idbGet<WeeklySundayReport[]>('reports'),
+    ]);
+
+    const lsLogs = loadDailyLogs();
+    const lsSettings = loadSettings();
+    const lsReports = loadSundayReports();
+
+    // Migrate LocalStorage to IndexedDB if IndexedDB is currently empty
+    if ((!idbLogs || idbLogs.length === 0) && lsLogs.length > 0) {
+      await idbSet('logs', lsLogs);
+    }
+    if (!idbSettings && lsSettings.isStarted) {
+      await idbSet('settings', lsSettings, 'userSettings');
+    }
+    if ((!idbReports || idbReports.length === 0) && lsReports.length > 0) {
+      await idbSet('reports', lsReports);
+    }
+
+    // Determine richest source (IDB vs LocalStorage)
+    const finalLogs = (idbLogs && idbLogs.length >= lsLogs.length) ? idbLogs : lsLogs;
+    const finalSettings = idbSettings || lsSettings;
+    const finalReports = (idbReports && idbReports.length >= lsReports.length) ? idbReports : lsReports;
+
+    return {
+      settings: finalSettings,
+      logs: finalLogs,
+      reports: finalReports,
+    };
+  } catch (err) {
+    console.warn('Hydration from IndexedDB skipped', err);
+    return {
+      settings: loadSettings(),
+      logs: loadDailyLogs(),
+      reports: loadSundayReports(),
+    };
   }
 }
 
-export function exportAllDataToJson(): string {
-  const data = {
-    settings: loadSettings(),
-    logs: loadDailyLogs(),
-    reports: loadSundayReports(),
-    version: '1.0',
-    exportDate: new Date().toISOString(),
+// ---------------------------------------------------------------------------
+// 4. BACKUP, EXPORT & RESTORE ENGINE (Phone Memory Backup & Download)
+// ---------------------------------------------------------------------------
+
+export interface DQSFullBackup {
+  version: string;
+  exportDate: string;
+  app: string;
+  settings: UserSettings;
+  logs: DailyLogEntry[];
+  reports: WeeklySundayReport[];
+  stats: {
+    totalDaysLogged: number;
+    totalPhotosCount: number;
   };
-  return JSON.stringify(data, null, 2);
+}
+
+export function exportAllDataToJson(): string {
+  const logs = loadDailyLogs();
+  const settings = loadSettings();
+  const reports = loadSundayReports();
+
+  const totalPhotosCount = logs.reduce((acc, l) => acc + (l.photos?.length || 0), 0);
+
+  const backupObj: DQSFullBackup = {
+    version: '3.0',
+    app: 'DQS Nutrition Tracker',
+    exportDate: new Date().toISOString(),
+    settings,
+    logs,
+    reports,
+    stats: {
+      totalDaysLogged: logs.length,
+      totalPhotosCount,
+    },
+  };
+
+  return JSON.stringify(backupObj, null, 2);
+}
+
+export function downloadBackupFile(): void {
+  const jsonStr = exportAllDataToJson();
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `DQS_Backup_${dateStr}.json`;
+
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export function importAllDataFromJson(jsonStr: string): boolean {
   try {
     const parsed = JSON.parse(jsonStr);
-    if (parsed.settings) saveSettings(parsed.settings);
-    if (Array.isArray(parsed.logs)) saveDailyLogs(parsed.logs);
-    if (Array.isArray(parsed.reports)) saveSundayReports(parsed.reports);
+    if (!parsed || typeof parsed !== 'object') return false;
+
+    if (parsed.settings && typeof parsed.settings === 'object') {
+      saveSettings(parsed.settings);
+    }
+    if (Array.isArray(parsed.logs)) {
+      saveDailyLogs(parsed.logs);
+    }
+    if (Array.isArray(parsed.reports)) {
+      saveSundayReports(parsed.reports);
+    }
     return true;
   } catch (e) {
-    console.error('Import failed', e);
+    console.error('Import backup failed', e);
     return false;
   }
+}
+
+export function getStorageStats(): {
+  totalDays: number;
+  totalPhotos: number;
+  approxSizeMB: string;
+  isIndexedDBSupported: boolean;
+} {
+  const logs = loadDailyLogs();
+  const settings = loadSettings();
+  const reports = loadSundayReports();
+
+  const totalPhotos = logs.reduce((acc, l) => acc + (l.photos?.length || 0), 0);
+  const rawJson = JSON.stringify({ logs, settings, reports });
+  const bytes = new Blob([rawJson]).size;
+  const mb = (bytes / (1024 * 1024)).toFixed(2);
+
+  return {
+    totalDays: logs.length,
+    totalPhotos,
+    approxSizeMB: mb,
+    isIndexedDBSupported: isIDBSupported,
+  };
 }

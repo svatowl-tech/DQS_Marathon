@@ -27,7 +27,7 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     iconName: 'Nut',
     description: 'Все орехи и семечки в цельном виде без обжарки, соли, сахара. Арахисовое масло без сахара',
     portionExample: '10г (маленькая горсть) / 1 ч.л. арахисовой пасты',
-    scoring: [2, 0, -1, -2],
+    scoring: [2, 0, -1, -2, -2, -2],
   },
   {
     id: 'whole_grains',
@@ -36,7 +36,7 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     iconName: 'Wheat',
     description: 'Овёс, гречка, киноа, булгур, перловка, дикий рис + бобовые (горох, нут, фасоль, чечевица, кукуруза) + ЦЗ макароны',
     portionExample: '60г сухого → ~120г готовой крупы / ~180г бобовых',
-    scoring: [2, 2, 1, 0, -1],
+    scoring: [2, 2, 1, 0, -1, -1],
   },
   {
     id: 'lean_proteins',
@@ -61,7 +61,7 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     nameRu: 'Полезные напитки (без калорий)',
     group: 'positive',
     iconName: 'Coffee',
-    description: 'Кофе свежемолотый, чай без сахара, минералка, арбуз',
+    description: 'Кофе свежемолотый, чай без сахара, минералка',
     portionExample: '120-240мл / 1 чашка или бокал (Вода обычная не учитывается)',
     scoring: [1, 1, 0, -1, -1, -2],
   },
@@ -71,8 +71,8 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     group: 'positive',
     iconName: 'Droplet',
     description: 'Сливочное масло, растительные масла (оливковое и др.), гхи, рыбий жир. (До 10г/день = лекарство, далее = яд)',
-    portionExample: '5г (1 порция). Учитываем впитывание при жарке (мясо 50%, картофель/фарш/овощи 100%)',
-    scoring: [1, 1, -1, -2],
+    portionExample: '5г (1 порция). Учитываем впитывание при жарке',
+    scoring: [1, 0, -1, -2, -2, -2],
   },
   {
     id: 'refined_grains',
@@ -81,16 +81,16 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     iconName: 'Croissant',
     description: 'Хлеб, обычные макароны, обычный рис, картофель, бананы, сухофрукты, хлебцы/снеки без сахара',
     portionExample: '60г сухого / 120г готового / картофель 120г / бананы 60г',
-    scoring: [0, -1, -2],
+    scoring: [0, -1, -2, -2, -2, -2],
   },
   {
     id: 'sweets',
     nameRu: 'Сладкое и десерты',
     group: 'negative',
     iconName: 'Candy',
-    description: 'Всё с добавленным сахаром: печенье, торты, шоколад, мёд, мороженое, сладкие йогурты, макадамия в сиропе',
+    description: 'Всё с добавленным сахаром: печенье, торты, шоколад, мёд, мороженое, сладкие йогурты',
     portionExample: '60г для всего (Сникерс 85г = 1.5п, Чизкейк 120г = 2п)',
-    scoring: [-2, -2, -2, -2, -2],
+    scoring: [0, -1, -2, -2, -2, -2],
   },
   {
     id: 'processed_meats',
@@ -98,8 +98,8 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     group: 'negative',
     iconName: 'Beef',
     description: 'Полуфабрикаты (котлеты, наггетсы, пельмени, колбасы), чипсы, фастфуд, ресторанные сложные блюда',
-    portionExample: '120г / снеки 60г (Каждая порция -2б)',
-    scoring: [-2, -2, -2, -2, -2],
+    portionExample: '120г / снеки 60г',
+    scoring: [0, -1, -2, -2, -2, -2],
   },
   {
     id: 'sugary_drinks_alcohol',
@@ -107,10 +107,35 @@ export const DQS_CATEGORIES: DQSCategoryInfo[] = [
     group: 'negative',
     iconName: 'GlassWater',
     description: 'Газировки с сахаром, соки, энергетики, сладкий кофе/какао, алкоголь, пиво',
-    portionExample: '240мл (200-300мл = 1 порция = -2б)',
-    scoring: [-2, -2, -2, -2, -2],
+    portionExample: '240мл (200-300мл = 1 порция)',
+    scoring: [0, -1, -2, -2, -2, -2],
   },
 ];
+
+export const CATEGORY_AVG_CALORIES: Record<CategoryId, number> = {
+  fruits: 55,
+  vegetables: 55,
+  nuts_seeds: 61,
+  whole_grains: 198,
+  lean_proteins: 167,
+  dairy: 80,
+  healthy_drinks: 0,
+  oils_fats: 41,
+  refined_grains: 212,
+  processed_meats: 332,
+  sweets: 456,
+  sugary_drinks_alcohol: 103,
+};
+
+export function calculatePredictedCalories(servings: Record<CategoryId, number>): number {
+  let total = 0;
+  (Object.keys(servings) as CategoryId[]).forEach((catId) => {
+    const count = servings[catId] || 0;
+    const kcal = CATEGORY_AVG_CALORIES[catId] || 0;
+    total += count * kcal;
+  });
+  return Math.round(total);
+}
 
 export function getCategoryPoints(catId: CategoryId, servingsCount: number): number {
   if (servingsCount <= 0) return 0;
@@ -118,11 +143,20 @@ export function getCategoryPoints(catId: CategoryId, servingsCount: number): num
   if (!cat) return 0;
 
   let total = 0;
-  for (let i = 0; i < servingsCount; i++) {
+  const fullServings = Math.floor(servingsCount);
+  const fraction = servingsCount - fullServings;
+
+  for (let i = 0; i < fullServings; i++) {
     const scoreIndex = Math.min(i, cat.scoring.length - 1);
     total += cat.scoring[scoreIndex];
   }
-  return total;
+
+  if (fraction > 0) {
+    const scoreIndex = Math.min(fullServings, cat.scoring.length - 1);
+    total += fraction * cat.scoring[scoreIndex];
+  }
+
+  return Math.round(total * 10) / 10;
 }
 
 export function calculateDailyDQS(

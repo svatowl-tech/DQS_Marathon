@@ -61,6 +61,8 @@ export interface DailyLogEntry {
     description: string;
   };
   notOnPhoto: string;
+  actualCalories?: number;
+  predictedCalories?: number;
   servings: Record<CategoryId, number>;
   diversity: Record<CategoryId, boolean>; // 3+ different foods in category
   calculatedScore: number;
@@ -128,6 +130,10 @@ export interface UserSettings {
   height?: number;
   taskRules?: CustomTaskRule[];
   favoriteMeals?: FavoriteMealTemplate[];
+  googleSheetId?: string;
+  autoSyncGoogleSheets?: boolean;
+  cloudSyncEnabled?: boolean;
+  lastCloudSyncTime?: string;
 }
 
 export type ActiveTab = 'home' | 'log' | 'table' | 'weekly_report' | 'guide' | 'charts' | 'settings' | 'print';
