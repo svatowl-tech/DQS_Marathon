@@ -292,11 +292,11 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
               </div>
             </div>
 
-            {/* Photos Grid if any */}
+            {/* Meal Entries & Photos Grid */}
             {log.photos && log.photos.length > 0 && (
               <div className="my-3 space-y-1.5">
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  📸 Тарелки дня ({log.photos.length}):
+                  🍽️ Приёмы пищи и фото ({log.photos.length}):
                 </span>
                 <div
                   className={`grid gap-2 ${
@@ -307,18 +307,31 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
                       : 'grid-cols-3'
                   }`}
                 >
-                  {log.photos.slice(0, 3).map((photo) => (
+                  {log.photos.map((photo) => (
                     <div
                       key={photo.id}
-                      className="relative rounded-xl overflow-hidden border border-white/15 aspect-square bg-black/60 shadow-md group"
+                      className="relative rounded-xl overflow-hidden border border-white/15 aspect-square bg-black/60 shadow-md group flex flex-col justify-between"
                     >
-                      <img
-                        src={photo.dataUrl}
-                        alt="Тарелка"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-[9px] text-white font-semibold">
-                        {mealTypeLabels[photo.mealType] || 'Приём пищи'}
+                      {photo.dataUrl ? (
+                        <img
+                          src={photo.dataUrl}
+                          alt={photo.caption || 'Тарелка'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full p-2 flex flex-col items-center justify-center bg-zinc-900/90 text-center space-y-1">
+                          <span className="text-base">🥗</span>
+                          <span className="text-[10px] font-bold text-emerald-400 leading-tight truncate max-w-full">
+                            {mealTypeLabels[photo.mealType] || 'Приём пищи'}
+                          </span>
+                          <span className="text-[9px] text-zinc-400 line-clamp-2 leading-tight">
+                            {photo.caption || photo.timestamp}
+                          </span>
+                        </div>
+                      )}
+                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] text-white font-semibold flex items-center gap-1 max-w-[90%] truncate">
+                        <span>{mealTypeLabels[photo.mealType] || 'Приём пищи'}</span>
+                        {photo.timestamp && <span className="opacity-75">• {photo.timestamp}</span>}
                       </div>
                     </div>
                   ))}

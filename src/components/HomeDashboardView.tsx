@@ -181,7 +181,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             </button>
 
             <button
-              onClick={onOpenQuickMealModal}
+              onClick={() => onOpenQuickMealModal()}
               className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
             >
               <Zap className="w-4 h-4 fill-black" />
@@ -473,7 +473,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             <div className="flex items-center justify-between text-xs font-medium text-zinc-400">
               <span>Фото приемов пищи ({currentLog.photos.length}):</span>
               <button
-                onClick={onOpenQuickMealModal}
+                onClick={() => onOpenQuickMealModal()}
                 className="text-emerald-400 hover:underline text-[11px]"
               >
                 + Загрузить

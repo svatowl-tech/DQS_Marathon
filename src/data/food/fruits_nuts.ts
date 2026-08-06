@@ -14,13 +14,13 @@ export const FRUITS_NUTS_FOOD_ITEMS: FoodItem[] = [
   },
   {
     id: 'fn_banana_medium',
-    title: 'Банан 1 штука средний',
-    categoryGroup: 'fruits_nuts',
+    title: 'Банан 1 штука средний (60г = 1п)',
+    categoryGroup: 'garnishes',
     defaultAmount: 120,
     unit: 'г',
-    servings: { fruits: 1.2 },
-    description: 'Спелый сладкий банан, источник калия и легких углеводов',
-    keywords: ['банан', 'фрукты', 'калий', 'завтрак', 'перекус'],
+    servings: { refined_grains: 2 },
+    description: 'Спелый сладкий банан (в системе DQS относится к категории обычных гарниров/углеводов)',
+    keywords: ['банан', 'гарнир', 'углеводы', 'калий', 'завтрак', 'перекус'],
   },
   {
     id: 'fn_orange_sweet',

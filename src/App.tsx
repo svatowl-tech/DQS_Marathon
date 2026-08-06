@@ -49,8 +49,12 @@ export default function App() {
   const [isExtendedPdfModalOpen, setIsExtendedPdfModalOpen] = useState(false);
   const [pdfReportType, setPdfReportType] = useState<'weekly' | 'monthly'>('weekly');
 
-  const handleOpenQuickMealModal = (meal?: PhotoEntry) => {
-    setEditingMeal(meal || null);
+  const handleOpenQuickMealModal = (meal?: unknown) => {
+    if (meal && typeof meal === 'object' && 'id' in meal && typeof (meal as any).id === 'string') {
+      setEditingMeal(meal as PhotoEntry);
+    } else {
+      setEditingMeal(null);
+    }
     setIsQuickMealModalOpen(true);
   };
 

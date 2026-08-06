@@ -431,13 +431,22 @@ export const ExtendedPdfReportModal: React.FC<ExtendedPdfReportModalProps> = ({
                               {log!.photos.map((photo) => (
                                 <div
                                   key={photo.id}
-                                  className="relative rounded-lg overflow-hidden border border-white/10 print:border-zinc-400 bg-black aspect-square shadow-sm"
+                                  className="relative rounded-lg overflow-hidden border border-white/10 print:border-zinc-400 bg-black aspect-square shadow-sm flex flex-col justify-between"
                                 >
-                                  <img
-                                    src={photo.dataUrl}
-                                    alt="Блюдо"
-                                    className="w-full h-full object-cover"
-                                  />
+                                  {photo.dataUrl ? (
+                                    <img
+                                      src={photo.dataUrl}
+                                      alt="Блюдо"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full p-1.5 flex flex-col items-center justify-center bg-zinc-900 text-center space-y-0.5">
+                                      <span className="text-xs">🥗</span>
+                                      <span className="text-[9px] font-bold text-emerald-400 truncate max-w-full">
+                                        {mealTypeRu[photo.mealType] || 'Приём пищи'}
+                                      </span>
+                                    </div>
+                                  )}
                                   <div className="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] text-white font-semibold flex items-center justify-between">
                                     <span>{mealTypeRu[photo.mealType] || 'Блюдо'}</span>
                                     {photo.timestamp && <span>{photo.timestamp}</span>}
@@ -719,17 +728,23 @@ export const ExtendedPdfReportModal: React.FC<ExtendedPdfReportModalProps> = ({
                       </div>
 
                       {w.photos.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {w.photos.slice(0, 3).map((photo) => (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                          {w.photos.map((photo) => (
                             <div
                               key={photo.id}
                               className="relative rounded-lg overflow-hidden border border-white/10 aspect-square bg-black shadow-sm"
                             >
-                              <img
-                                src={photo.dataUrl}
-                                alt="Тарелка"
-                                className="w-full h-full object-cover"
-                              />
+                              {photo.dataUrl ? (
+                                <img
+                                  src={photo.dataUrl}
+                                  alt="Тарелка"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-400 bg-zinc-900">
+                                  🥗
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
