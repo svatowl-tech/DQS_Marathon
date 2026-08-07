@@ -66,12 +66,17 @@ class Logger {
     if (msg.includes('maxlistenersexceededwarning') || msg.includes('objectmultiplex') || msg.includes('orphaned data for stream')) {
       return true;
     }
-    if (st.includes('contentscript.js') || msg.includes('contentscript.js')) {
+    if (st.includes('contentscript.js') || msg.includes('contentscript.js') || msg.includes('chrome-extension://')) {
       return true;
     }
 
     // PWA install prompt banner warning
     if (msg.includes('beforeinstallpromptevent.preventdefault()') || msg.includes('banner not shown')) {
+      return true;
+    }
+
+    // Cross-Origin-Opener-Policy browser popup warning (normal browser behavior when closing Firebase Auth popups)
+    if (msg.includes('cross-origin-opener-policy') || msg.includes('would block the window.closed call')) {
       return true;
     }
 
