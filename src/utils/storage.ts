@@ -71,28 +71,36 @@ function getDB(): Promise<IDBDatabase> {
       request.onsuccess = () => {
         dbInstance = request.result;
         dbInstance.onclose = () => {
-          logger.warn('Storage', 'IndexedDB connection closed unexpectedly, resetting instance handle');
+          // Suppress noise for backgrounding/closing on mobile browsers
+          // logger.warn('Storage', 'IndexedDB connection closed unexpectedly, resetting instance handle');
           dbInstance = null;
         };
         dbInstance.onversionchange = () => {
-          logger.warn('Storage', 'IndexedDB versionchange triggered, closing connection');
+          // Suppress noise for backgrounding/closing on mobile browsers
+          // logger.warn('Storage', 'IndexedDB versionchange triggered, closing connection');
           if (dbInstance) {
             try { dbInstance.close(); } catch (e) {}
             dbInstance = null;
           }
         };
-        dbInstance.onerror = (err) => {
-          logger.error('Storage', 'IndexedDB handle error', err);
+        dbInstance.onerror = (err: any) => {
+          const errMsg = err?.target?.error?.message || String(err);
+          if (!errMsg.toLowerCase().includes('closing') && !errMsg.toLowerCase().includes('hidden')) {
+            logger.error('Storage', 'IndexedDB handle error', { error: errMsg });
+          }
           dbInstance = null;
         };
         logger.info('Storage', 'IndexedDB connection established successfully');
         resolve(dbInstance);
       };
 
-      request.onerror = (e) => {
-        logger.error('Storage', 'IndexedDB failed to open, falling back to LocalStorage', { error: request.error });
+      request.onerror = (e: any) => {
+        const errMsg = e?.target?.error?.message || String(e?.target?.error || e);
+        if (!errMsg.toLowerCase().includes('closing') && !errMsg.toLowerCase().includes('hidden')) {
+           logger.error('Storage', 'IndexedDB failed to open, falling back to LocalStorage', { error: errMsg });
+        }
         dbInstance = null;
-        reject(request.error);
+        reject(e?.target?.error || e);
       };
     } catch (err) {
       logger.error('Storage', 'IndexedDB initialization error', err);

@@ -184,6 +184,19 @@ class Logger {
     details?: any,
     stack?: string
   ) {
+    // Drop noise logs globally even if explicitly called by our own code
+    let errStr = '';
+    try {
+      errStr = details instanceof Error ? details.toString() : String(details || '');
+    } catch (e) {
+      errStr = '';
+    }
+    const combinedMsg = `${message} ${errStr}`;
+    
+    if (this.isNoiseLog(combinedMsg, stack)) {
+      return;
+    }
+
     const now = new Date();
     const entry: LogEntry = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
