@@ -21,8 +21,20 @@ const DB_VERSION = 1;
 let dbInstance: IDBDatabase | null = null;
 let isIDBSupported = typeof window !== 'undefined' && 'indexedDB' in window;
 
+// In-Memory Singletons & Cache for Ultra-Stable Session State
+let memoryLogsCache: DailyLogEntry[] | null = null;
+let memorySettingsCache: UserSettings | null = null;
+let memoryReportsCache: WeeklySundayReport[] | null = null;
+let isHydratedFlag = false;
+
+export function isAppStorageHydrated(): boolean {
+  return isHydratedFlag;
+}
+
 function getDB(): Promise<IDBDatabase> {
-  if (dbInstance) return Promise.resolve(dbInstance);
+  if (dbInstance) {
+    return Promise.resolve(dbInstance);
+  }
 
   return new Promise((resolve, reject) => {
     if (!isIDBSupported) {
@@ -53,16 +65,26 @@ function getDB(): Promise<IDBDatabase> {
 
       request.onsuccess = () => {
         dbInstance = request.result;
+        dbInstance.onclose = () => {
+          logger.warn('Storage', 'IndexedDB connection closed unexpectedly, resetting instance handle');
+          dbInstance = null;
+        };
+        dbInstance.onerror = (err) => {
+          logger.error('Storage', 'IndexedDB handle error', err);
+          dbInstance = null;
+        };
         logger.info('Storage', 'IndexedDB connection established successfully');
         resolve(dbInstance);
       };
 
       request.onerror = (e) => {
         logger.error('Storage', 'IndexedDB failed to open, falling back to LocalStorage', { error: request.error });
+        dbInstance = null;
         reject(request.error);
       };
     } catch (err) {
       logger.error('Storage', 'IndexedDB initialization error', err);
+      dbInstance = null;
       reject(err);
     }
   });
@@ -79,9 +101,13 @@ async function idbGet<T>(storeName: string, key?: string): Promise<T | null> {
       req.onsuccess = () => {
         resolve(req.result as T || null);
       };
-      req.onerror = () => resolve(null);
+      req.onerror = () => {
+        dbInstance = null; // Reset handle on error
+        resolve(null);
+      };
     });
   } catch (e) {
+    dbInstance = null;
     return null;
   }
 }
@@ -116,6 +142,7 @@ async function idbSet(storeName: string, value: any, key?: string): Promise<bool
       }
     });
   } catch (e) {
+    dbInstance = null;
     return false;
   }
 }
@@ -228,12 +255,15 @@ export function generateSampleData(): DailyLogEntry[] {
 
 // SETTINGS
 export function loadSettings(): UserSettings {
+  if (memorySettingsCache) {
+    return memorySettingsCache;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS) || localStorage.getItem('dqs_diary_settings_v2');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return {
+        const loaded = {
           ...DEFAULT_SETTINGS,
           ...parsed,
           startMeasurements: {
@@ -243,15 +273,19 @@ export function loadSettings(): UserSettings {
           favoriteMeals: Array.isArray(parsed.favoriteMeals) ? parsed.favoriteMeals : DEFAULT_SETTINGS.favoriteMeals,
           taskRules: Array.isArray(parsed.taskRules) ? parsed.taskRules : DEFAULT_SETTINGS.taskRules,
         };
+        memorySettingsCache = loaded;
+        return loaded;
       }
     }
   } catch (e) {
     console.error('Failed to load settings from localStorage', e);
   }
+  memorySettingsCache = DEFAULT_SETTINGS;
   return DEFAULT_SETTINGS;
 }
 
 export function saveSettings(settings: UserSettings): void {
+  memorySettingsCache = settings;
   try {
     localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
   } catch (e) {
@@ -263,6 +297,9 @@ export function saveSettings(settings: UserSettings): void {
 
 // DAILY LOGS
 export function loadDailyLogs(): DailyLogEntry[] {
+  if (memoryLogsCache && memoryLogsCache.length > 0) {
+    return memoryLogsCache;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_LOGS) || localStorage.getItem('dqs_diary_logs_v2');
     if (raw) {
@@ -271,7 +308,7 @@ export function loadDailyLogs(): DailyLogEntry[] {
         const initialServings = getInitialServings();
         const initialDiversity = getInitialDiversity();
 
-        return parsed
+        const loaded = parsed
           .filter((item) => item && typeof item === 'object' && item.date)
           .map((item: DailyLogEntry) => ({
             ...item,
@@ -282,15 +319,27 @@ export function loadDailyLogs(): DailyLogEntry[] {
             trackers: item.trackers || { waterGlass: 0, coffeeCups: 0, sleepHours: 7 },
             photos: Array.isArray(item.photos) ? item.photos : [],
           }));
+        memoryLogsCache = loaded;
+        return loaded;
       }
     }
   } catch (e) {
     console.error('Failed to load logs from localStorage', e);
   }
-  return [];
+  return memoryLogsCache || [];
 }
 
-export function saveDailyLogs(logs: DailyLogEntry[]): void {
+export function saveDailyLogs(logs: DailyLogEntry[], isExplicitUserReset = false): void {
+  // Anti-wipe guard: if logs is empty, but we have cached logs or hydration hasn't run, prevent accidental wipe unless explicitly requested
+  if ((!logs || logs.length === 0) && !isExplicitUserReset) {
+    if (memoryLogsCache && memoryLogsCache.length > 0) {
+      logger.warn('Storage', 'Blocked accidental empty daily logs wipe during state update');
+      return;
+    }
+  }
+
+  memoryLogsCache = logs;
+
   // Save to IndexedDB first (no 5MB limit)
   idbSet('logs', logs).then((ok) => {
     if (!ok) {
@@ -309,7 +358,7 @@ export function saveDailyLogs(logs: DailyLogEntry[]): void {
     try {
       const lightweightLogs = logs.map((l) => ({
         ...l,
-        photos: l.photos.map((p) => ({ ...p, dataUrl: '' })), // preserve photo metadata without base64 blob
+        photos: Array.isArray(l.photos) ? l.photos.map((p) => ({ ...p, dataUrl: '' })) : [], // preserve photo metadata without base64 blob
       }));
       localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(lightweightLogs));
     } catch (err) {
@@ -320,21 +369,33 @@ export function saveDailyLogs(logs: DailyLogEntry[]): void {
 
 // SUNDAY REPORTS
 export function loadSundayReports(): WeeklySundayReport[] {
+  if (memoryReportsCache && memoryReportsCache.length > 0) {
+    return memoryReportsCache;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_REPORTS) || localStorage.getItem('dqs_diary_reports_v2');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter((r) => r && typeof r === 'object' && r.weekEndDate);
+        const loaded = parsed.filter((r) => r && typeof r === 'object' && r.weekEndDate);
+        memoryReportsCache = loaded;
+        return loaded;
       }
     }
   } catch (e) {
     console.error('Failed to load reports from localStorage', e);
   }
-  return [];
+  return memoryReportsCache || [];
 }
 
-export function saveSundayReports(reports: WeeklySundayReport[]): void {
+export function saveSundayReports(reports: WeeklySundayReport[], isExplicitUserReset = false): void {
+  if ((!reports || reports.length === 0) && !isExplicitUserReset) {
+    if (memoryReportsCache && memoryReportsCache.length > 0) {
+      logger.warn('Storage', 'Blocked accidental empty reports wipe');
+      return;
+    }
+  }
+  memoryReportsCache = reports;
   try {
     localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(reports));
   } catch (e) {
@@ -363,38 +424,79 @@ export async function hydrateFromIndexedDB(): Promise<{
     const lsSettings = loadSettings();
     const lsReports = loadSundayReports();
 
-    // Migrate LocalStorage to IndexedDB if IndexedDB is currently empty
-    if ((!idbLogs || idbLogs.length === 0) && lsLogs.length > 0) {
-      await idbSet('logs', lsLogs);
-      logger.info('Storage', 'Migrated LocalStorage daily logs into IndexedDB');
-    }
-    if (!idbSettings && lsSettings.isStarted) {
-      await idbSet('settings', lsSettings, 'userSettings');
-      logger.info('Storage', 'Migrated LocalStorage user settings into IndexedDB');
-    }
-    if ((!idbReports || idbReports.length === 0) && lsReports.length > 0) {
-      await idbSet('reports', lsReports);
-      logger.info('Storage', 'Migrated LocalStorage reports into IndexedDB');
+    // Comprehensive multi-source merging by date to ensure NO photos or logs are dropped
+    const logMap = new Map<string, DailyLogEntry>();
+
+    // 1. Add LocalStorage logs
+    for (const l of lsLogs) {
+      if (l && l.date) logMap.set(l.date, l);
     }
 
-    // Determine richest source (IDB vs LocalStorage)
-    const finalLogs = (idbLogs && idbLogs.length >= lsLogs.length) ? idbLogs : lsLogs;
-    const finalSettings = idbSettings || lsSettings;
-    const finalReports = (idbReports && idbReports.length >= lsReports.length) ? idbReports : lsReports;
+    // 2. Add In-Memory cached logs
+    if (memoryLogsCache) {
+      for (const l of memoryLogsCache) {
+        if (l && l.date) logMap.set(l.date, l);
+      }
+    }
 
-    logger.info('Storage', 'Hydration completed from persistent storage', {
-      totalLogs: finalLogs.length,
+    // 3. Merge IDB logs (prefer entries with photos or more detail)
+    if (Array.isArray(idbLogs)) {
+      for (const l of idbLogs) {
+        if (!l || !l.date) continue;
+        const existing = logMap.get(l.date);
+        if (!existing) {
+          logMap.set(l.date, l);
+        } else {
+          const existingPhotos = Array.isArray(existing.photos) ? existing.photos.length : 0;
+          const idbPhotos = Array.isArray(l.photos) ? l.photos.length : 0;
+          // Keep the IDB version if it has equal or more photos or data
+          if (idbPhotos >= existingPhotos) {
+            logMap.set(l.date, l);
+          }
+        }
+      }
+    }
+
+    const mergedLogs = Array.from(logMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+    const finalSettings = idbSettings || lsSettings || memorySettingsCache || DEFAULT_SETTINGS;
+
+    const reportMap = new Map<string, WeeklySundayReport>();
+    for (const r of lsReports) { if (r && r.weekEndDate) reportMap.set(r.weekEndDate, r); }
+    if (memoryReportsCache) { for (const r of memoryReportsCache) { if (r && r.weekEndDate) reportMap.set(r.weekEndDate, r); } }
+    if (Array.isArray(idbReports)) { for (const r of idbReports) { if (r && r.weekEndDate) reportMap.set(r.weekEndDate, r); } }
+    const mergedReports = Array.from(reportMap.values());
+
+    // Update internal in-memory caches
+    memoryLogsCache = mergedLogs;
+    memorySettingsCache = finalSettings;
+    memoryReportsCache = mergedReports;
+    isHydratedFlag = true;
+
+    // Migrate or align persistent stores with the merged truth
+    if (mergedLogs.length > 0) {
+      await idbSet('logs', mergedLogs);
+    }
+    if (finalSettings.isStarted) {
+      await idbSet('settings', finalSettings, 'userSettings');
+    }
+    if (mergedReports.length > 0) {
+      await idbSet('reports', mergedReports);
+    }
+
+    logger.info('Storage', 'Hydration completed safely from persistent storage', {
+      totalLogs: mergedLogs.length,
       hasSettings: !!finalSettings,
-      totalReports: finalReports.length,
+      totalReports: mergedReports.length,
     });
 
     return {
       settings: finalSettings,
-      logs: finalLogs,
-      reports: finalReports,
+      logs: mergedLogs,
+      reports: mergedReports,
     };
   } catch (err) {
     logger.warn('Storage', 'Hydration from IndexedDB skipped, falling back to LocalStorage', err);
+    isHydratedFlag = true;
     return {
       settings: loadSettings(),
       logs: loadDailyLogs(),

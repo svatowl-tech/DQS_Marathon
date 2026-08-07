@@ -78,18 +78,24 @@ export default function App() {
   });
 
   const prevTodayRef = useRef<string>(initialLocalDate);
+  const isHydratingRef = useRef<boolean>(true);
 
-  // Time Sync & Day Rollover Check Routine
+  // Time Sync & Day Rollover Check Routine (Pinned to home timezone to prevent VPN date shifts)
   const syncTimeAndCheckDayChange = useCallback(async () => {
     setIsSyncingTime(true);
-    const info = await fetchInternetTimeAndZone();
+    const info = await fetchInternetTimeAndZone(settings.timeZone);
     setNetTimeInfo(info);
     setIsSyncingTime(false);
+
+    // Automatically pin home timezone if not set yet
+    if (!settings.timeZone && info.homeTimeZone) {
+      setSettings((prev) => ({ ...prev, timeZone: info.homeTimeZone }));
+    }
 
     const detectedToday = info.dateStr;
     const previousToday = prevTodayRef.current;
 
-    // Detect if day changed (midnight rollover)
+    // Detect if day changed (midnight rollover in home timezone)
     if (previousToday && previousToday !== detectedToday) {
       prevTodayRef.current = detectedToday;
       setTodayStr(detectedToday);
@@ -107,7 +113,7 @@ export default function App() {
       prevTodayRef.current = detectedToday;
       setTodayStr(detectedToday);
     }
-  }, []);
+  }, [settings.timeZone]);
 
   // Theme Switching Effect (Light vs Dark vs System)
   useEffect(() => {
@@ -166,6 +172,7 @@ export default function App() {
   // Hydrate state asynchronously from IndexedDB engine on startup
   useEffect(() => {
     async function initIndexedDBHydration() {
+      isHydratingRef.current = true;
       const hydrated = await hydrateFromIndexedDB();
       if (hydrated.logs && hydrated.logs.length > 0) {
         setLogs(hydrated.logs);
@@ -176,6 +183,7 @@ export default function App() {
       if (hydrated.reports && hydrated.reports.length > 0) {
         setReports(hydrated.reports);
       }
+      isHydratingRef.current = false;
     }
     initIndexedDBHydration();
   }, []);
@@ -219,17 +227,23 @@ export default function App() {
     });
   };
 
-  // Save to LocalStorage on updates
+  // Save to LocalStorage/IndexedDB on updates (guarded against early hydration wipes)
   useEffect(() => {
-    saveDailyLogs(logs);
+    if (!isHydratingRef.current) {
+      saveDailyLogs(logs);
+    }
   }, [logs]);
 
   useEffect(() => {
-    saveSettings(settings);
+    if (!isHydratingRef.current) {
+      saveSettings(settings);
+    }
   }, [settings]);
 
   useEffect(() => {
-    saveSundayReports(reports);
+    if (!isHydratingRef.current) {
+      saveSundayReports(reports);
+    }
   }, [reports]);
 
   // Find or construct entry for current selected date
@@ -286,8 +300,8 @@ export default function App() {
       setLogs([]);
       setReports([]);
       setSettings(DEFAULT_SETTINGS);
-      saveDailyLogs([]);
-      saveSundayReports([]);
+      saveDailyLogs([], true);
+      saveSundayReports([], true);
       saveSettings(DEFAULT_SETTINGS);
       alert('Все данные дневника сброшены!');
     }

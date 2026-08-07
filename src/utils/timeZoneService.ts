@@ -4,11 +4,13 @@
  */
 
 export interface NetworkTimeInfo {
-  dateStr: string;        // YYYY-MM-DD in user's target timezone
+  dateStr: string;        // YYYY-MM-DD in user's target home timezone
   timeStr: string;        // HH:MM:SS
-  timeZone: string;       // e.g. "Europe/Moscow" or "America/New_York"
+  timeZone: string;       // current browser/VPN system timezone
+  homeTimeZone: string;   // pinned home timezone
   utcOffset: string;      // e.g. "+03:00"
   isInternetSynced: boolean;
+  isVpnOrTzShift: boolean; // true if system timezone differs from home timezone
   lastSyncedAt: Date;
 }
 
@@ -62,12 +64,28 @@ export function formatFullRuDate(dateStr: string): string {
 }
 
 /**
- * Fetches accurate internet time and timezone using WorldTimeAPI or IP-API,
- * with instantaneous local device clock fallback.
+ * Safely detects current browser system timezone string
  */
-export async function fetchInternetTimeAndZone(): Promise<NetworkTimeInfo> {
-  const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+export function getSystemTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow';
+  } catch (e) {
+    return 'Europe/Moscow';
+  }
+}
+
+/**
+ * Fetches accurate internet/device time and timezone,
+ * pinned to user's home timezone so VPN toggling does not shift calendar day.
+ */
+export async function fetchInternetTimeAndZone(pinnedHomeTimeZone?: string): Promise<NetworkTimeInfo> {
+  const systemTimeZone = getSystemTimeZone();
+  const homeTimeZone = pinnedHomeTimeZone || systemTimeZone;
   const now = new Date();
+
+  const isVpnOrTzShift = Boolean(pinnedHomeTimeZone && systemTimeZone !== pinnedHomeTimeZone);
+  // Calculate date using homeTimeZone so VPN or network IP change does NOT shift the user's diary day
+  const dateStr = getFormattedLocalDate(now, homeTimeZone);
 
   const tzOffsetMinutes = -now.getTimezoneOffset();
   const sign = tzOffsetMinutes >= 0 ? '+' : '-';
@@ -76,13 +94,14 @@ export async function fetchInternetTimeAndZone(): Promise<NetworkTimeInfo> {
   const mins = String(absMin % 60).padStart(2, '0');
   const utcOffset = `${sign}${hours}:${mins}`;
 
-  // Local device clock synced with system NTP/network
   return {
-    dateStr: getFormattedLocalDate(now, localTimeZone),
+    dateStr,
     timeStr: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    timeZone: localTimeZone,
+    timeZone: systemTimeZone,
+    homeTimeZone,
     utcOffset,
     isInternetSynced: true,
+    isVpnOrTzShift,
     lastSyncedAt: now,
   };
 }

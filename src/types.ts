@@ -126,6 +126,7 @@ export interface UserSettings {
   startMeasurements: BodyMeasurements;
   targetDqsGreen: number; // default 18
   theme: 'light' | 'dark' | 'system';
+  timeZone?: string; // e.g. "Europe/Moscow"
   isStarted?: boolean;
   targetWeight?: number;
   height?: number;
