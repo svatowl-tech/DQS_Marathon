@@ -28,7 +28,7 @@ export const DAIRY_EGGS_FOOD_ITEMS: FoodItem[] = [
     categoryGroup: 'dairy_eggs',
     defaultAmount: 180,
     unit: 'г',
-    servings: { dairy: 1, fruits: 0.5, refined_grains: 0.5 },
+    servings: { dairy: 1, refined_grains: 1 },
     description: 'Пышные сырники с сочным изюмом и густой сметаной',
     keywords: ['сырники с изюмом', 'изюм', 'сметана'],
   },

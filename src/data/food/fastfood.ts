@@ -264,7 +264,7 @@ export const FASTFOOD_FOOD_ITEMS: FoodItem[] = [
     categoryGroup: 'fastfood',
     defaultAmount: 300,
     unit: 'г',
-    servings: { refined_grains: 1.5, lean_proteins: 1, vegetables: 1 },
+    servings: { refined_grains: 1.5, lean_proteins: 0.5, whole_grains: 0.5, vegetables: 0.5 },
     description: 'Плотный мексиканский рулет с фаршем, красной фасолью, рисом и перцем халапеньо',
     keywords: ['буррито', 'мексиканская', 'фасоль', 'говядина'],
   },

@@ -31,6 +31,19 @@ export function isAppStorageHydrated(): boolean {
   return isHydratedFlag;
 }
 
+if (typeof window !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && dbInstance) {
+      try {
+        dbInstance.close();
+      } catch (e) {
+        // Ignore
+      }
+      dbInstance = null;
+    }
+  });
+}
+
 function getDB(): Promise<IDBDatabase> {
   if (dbInstance) {
     return Promise.resolve(dbInstance);
@@ -69,6 +82,13 @@ function getDB(): Promise<IDBDatabase> {
           logger.warn('Storage', 'IndexedDB connection closed unexpectedly, resetting instance handle');
           dbInstance = null;
         };
+        dbInstance.onversionchange = () => {
+          logger.warn('Storage', 'IndexedDB versionchange triggered, closing connection');
+          if (dbInstance) {
+            try { dbInstance.close(); } catch (e) {}
+            dbInstance = null;
+          }
+        };
         dbInstance.onerror = (err) => {
           logger.error('Storage', 'IndexedDB handle error', err);
           dbInstance = null;
@@ -91,60 +111,83 @@ function getDB(): Promise<IDBDatabase> {
 }
 
 async function idbGet<T>(storeName: string, key?: string): Promise<T | null> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(storeName, 'readonly');
-      const store = tx.objectStore(storeName);
-      const req = key ? store.get(key) : store.getAll();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const db = await getDB();
+      const result = await new Promise<T | null>((resolve, reject) => {
+        try {
+          const tx = db.transaction(storeName, 'readonly');
+          const store = tx.objectStore(storeName);
+          const req = key ? store.get(key) : store.getAll();
 
-      req.onsuccess = () => {
-        resolve(req.result as T || null);
-      };
-      req.onerror = () => {
-        dbInstance = null; // Reset handle on error
-        resolve(null);
-      };
-    });
-  } catch (e) {
-    dbInstance = null;
-    return null;
+          req.onsuccess = () => resolve((req.result as T) || null);
+          req.onerror = () => reject(req.error || new Error('IDB get request error'));
+          tx.onabort = () => reject(new Error('Transaction aborted'));
+          tx.onerror = () => reject(tx.error || new Error('Transaction error'));
+        } catch (err) {
+          reject(err);
+        }
+      });
+      return result;
+    } catch (e) {
+      logger.warn('Storage', `idbGet attempt ${attempt + 1} failed, resetting dbInstance`, { error: String(e) });
+      dbInstance = null;
+      if (attempt === 1) return null;
+      await new Promise((r) => setTimeout(r, 50));
+    }
   }
+  return null;
 }
 
 async function idbSet(storeName: string, value: any, key?: string): Promise<boolean> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(storeName, 'readwrite');
-      const store = tx.objectStore(storeName);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const db = await getDB();
+      const success = await new Promise<boolean>((resolve, reject) => {
+        try {
+          const tx = db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
 
-      if (Array.isArray(value) && store.keyPath) {
-        // Clear store first, then put all array items
-        const clearReq = store.clear();
-        clearReq.onsuccess = () => {
-          let pending = value.length;
-          if (pending === 0) resolve(true);
-
-          for (const item of value) {
-            const putReq = store.put(item);
-            putReq.onsuccess = putReq.onerror = () => {
-              pending--;
+          if (Array.isArray(value) && store.keyPath) {
+            const clearReq = store.clear();
+            clearReq.onsuccess = () => {
+              let pending = value.length;
               if (pending === 0) resolve(true);
+
+              for (const item of value) {
+                const putReq = store.put(item);
+                putReq.onsuccess = () => {
+                  pending--;
+                  if (pending === 0) resolve(true);
+                };
+                putReq.onerror = () => {
+                  pending--;
+                  if (pending === 0) resolve(true);
+                };
+              }
             };
+            clearReq.onerror = () => reject(clearReq.error || new Error('Clear store error'));
+          } else {
+            const req = key ? store.put(value, key) : store.put(value);
+            req.onsuccess = () => resolve(true);
+            req.onerror = () => reject(req.error || new Error('Put store error'));
           }
-        };
-        clearReq.onerror = () => resolve(false);
-      } else {
-        const req = key ? store.put(value, key) : store.put(value);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-      }
-    });
-  } catch (e) {
-    dbInstance = null;
-    return false;
+
+          tx.onabort = () => reject(new Error('Transaction aborted'));
+          tx.onerror = () => reject(tx.error || new Error('Transaction error'));
+        } catch (err) {
+          reject(err);
+        }
+      });
+      if (success) return true;
+    } catch (e) {
+      logger.warn('Storage', `idbSet attempt ${attempt + 1} failed, resetting dbInstance`, { error: String(e) });
+      dbInstance = null;
+      if (attempt === 1) return false;
+      await new Promise((r) => setTimeout(r, 50));
+    }
   }
+  return false;
 }
 
 // ---------------------------------------------------------------------------

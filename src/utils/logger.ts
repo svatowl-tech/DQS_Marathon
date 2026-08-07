@@ -80,6 +80,16 @@ class Logger {
       return true;
     }
 
+    // Mobile browser backgrounding IndexedDB closing noise
+    if (
+      msg.includes('database is closing') ||
+      msg.includes('database is hidden') ||
+      msg.includes('connection is closing') ||
+      msg.includes('invalidstateerror')
+    ) {
+      return true;
+    }
+
     return false;
   }
 

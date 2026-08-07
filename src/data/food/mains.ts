@@ -160,7 +160,7 @@ export const MAINS_FOOD_ITEMS: FoodItem[] = [
     categoryGroup: 'mains',
     defaultAmount: 200,
     unit: 'г',
-    servings: { lean_proteins: 1.5, fruits: 0.5, oils_fats: 0.5 },
+    servings: { lean_proteins: 1.5, refined_grains: 0.5, oils_fats: 0.5 },
     description: 'Тающая во рту тушеная лопатка с кисло-сладким черносливом',
     keywords: ['говядина', 'чернослив', 'тушеное мясо'],
   },
