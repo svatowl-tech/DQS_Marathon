@@ -4,6 +4,7 @@ import {
   getInitialDiversity,
   getInitialServings,
 } from './dqsEngine';
+import { logger } from './logger';
 
 const STORAGE_KEY_SETTINGS = 'dqs_diary_settings_v3';
 const STORAGE_KEY_LOGS = 'dqs_diary_logs_v3';
@@ -25,6 +26,7 @@ function getDB(): Promise<IDBDatabase> {
 
   return new Promise((resolve, reject) => {
     if (!isIDBSupported) {
+      logger.warn('Storage', 'IndexedDB not supported on this browser or platform');
       reject(new Error('IndexedDB not supported on this device'));
       return;
     }
@@ -33,6 +35,7 @@ function getDB(): Promise<IDBDatabase> {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onupgradeneeded = (event: any) => {
+        logger.info('Storage', 'IndexedDB database upgrade triggered', { version: DB_VERSION });
         const db = request.result;
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings');
@@ -50,15 +53,16 @@ function getDB(): Promise<IDBDatabase> {
 
       request.onsuccess = () => {
         dbInstance = request.result;
+        logger.info('Storage', 'IndexedDB connection established successfully');
         resolve(dbInstance);
       };
 
       request.onerror = (e) => {
-        console.warn('IndexedDB failed to open, falling back to LocalStorage', e);
+        logger.error('Storage', 'IndexedDB failed to open, falling back to LocalStorage', { error: request.error });
         reject(request.error);
       };
     } catch (err) {
-      console.warn('IndexedDB initialization error', err);
+      logger.error('Storage', 'IndexedDB initialization error', err);
       reject(err);
     }
   });
@@ -288,14 +292,19 @@ export function loadDailyLogs(): DailyLogEntry[] {
 
 export function saveDailyLogs(logs: DailyLogEntry[]): void {
   // Save to IndexedDB first (no 5MB limit)
-  idbSet('logs', logs);
+  idbSet('logs', logs).then((ok) => {
+    if (!ok) {
+      logger.warn('Storage', 'idbSet failed for daily logs');
+    }
+  });
 
   // Also write to LocalStorage with fallback safety if quota permits
   try {
     const jsonStr = JSON.stringify(logs);
     localStorage.setItem(STORAGE_KEY_LOGS, jsonStr);
+    logger.debug('Storage', `Saved ${logs.length} daily log entries to LocalStorage`, { bytes: jsonStr.length });
   } catch (e) {
-    console.warn('LocalStorage quota exceeded! Data is securely preserved in IndexedDB engine.', e);
+    logger.warn('Storage', 'LocalStorage quota exceeded! Preserving data in IndexedDB', e);
     // If quota exceeded in localStorage, save a stripped lightweight version to LocalStorage without heavy photos
     try {
       const lightweightLogs = logs.map((l) => ({
@@ -304,7 +313,7 @@ export function saveDailyLogs(logs: DailyLogEntry[]): void {
       }));
       localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(lightweightLogs));
     } catch (err) {
-      // Ignore
+      logger.error('Storage', 'Failed to write lightweight logs to LocalStorage', err);
     }
   }
 }
@@ -357,12 +366,15 @@ export async function hydrateFromIndexedDB(): Promise<{
     // Migrate LocalStorage to IndexedDB if IndexedDB is currently empty
     if ((!idbLogs || idbLogs.length === 0) && lsLogs.length > 0) {
       await idbSet('logs', lsLogs);
+      logger.info('Storage', 'Migrated LocalStorage daily logs into IndexedDB');
     }
     if (!idbSettings && lsSettings.isStarted) {
       await idbSet('settings', lsSettings, 'userSettings');
+      logger.info('Storage', 'Migrated LocalStorage user settings into IndexedDB');
     }
     if ((!idbReports || idbReports.length === 0) && lsReports.length > 0) {
       await idbSet('reports', lsReports);
+      logger.info('Storage', 'Migrated LocalStorage reports into IndexedDB');
     }
 
     // Determine richest source (IDB vs LocalStorage)
@@ -370,13 +382,19 @@ export async function hydrateFromIndexedDB(): Promise<{
     const finalSettings = idbSettings || lsSettings;
     const finalReports = (idbReports && idbReports.length >= lsReports.length) ? idbReports : lsReports;
 
+    logger.info('Storage', 'Hydration completed from persistent storage', {
+      totalLogs: finalLogs.length,
+      hasSettings: !!finalSettings,
+      totalReports: finalReports.length,
+    });
+
     return {
       settings: finalSettings,
       logs: finalLogs,
       reports: finalReports,
     };
   } catch (err) {
-    console.warn('Hydration from IndexedDB skipped', err);
+    logger.warn('Storage', 'Hydration from IndexedDB skipped, falling back to LocalStorage', err);
     return {
       settings: loadSettings(),
       logs: loadDailyLogs(),

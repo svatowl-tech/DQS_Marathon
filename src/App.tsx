@@ -37,6 +37,9 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { PrintView } from './components/PrintView';
 import { SettingsView } from './components/SettingsView';
 import { FoodDictionaryView } from './components/FoodDictionaryView';
+import { ToastContainer } from './components/ToastContainer';
+import { SystemLogModal } from './components/SystemLogModal';
+import { Terminal } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -48,6 +51,7 @@ export default function App() {
   const [isStartWizardOpen, setIsStartWizardOpen] = useState(false);
   const [isExtendedPdfModalOpen, setIsExtendedPdfModalOpen] = useState(false);
   const [pdfReportType, setPdfReportType] = useState<'weekly' | 'monthly'>('weekly');
+  const [isSystemLogModalOpen, setIsSystemLogModalOpen] = useState(false);
 
   const handleOpenQuickMealModal = (meal?: unknown) => {
     if (meal && typeof meal === 'object' && 'id' in meal && typeof (meal as any).id === 'string') {
@@ -455,16 +459,35 @@ export default function App() {
         initialType={pdfReportType}
       />
 
+      {/* System Diagnostic Logs Modal */}
+      <SystemLogModal
+        isOpen={isSystemLogModalOpen}
+        onClose={() => setIsSystemLogModalOpen(false)}
+      />
+
+      {/* Toast Notification Container */}
+      <ToastContainer />
+
       {/* Footer */}
       <footer className="hidden sm:flex border-t border-white/5 bg-[#0a0a0a] py-5 px-6 text-center text-xs text-slate-500 font-mono flex-col sm:flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>DQS JOURNAL // ELEGANT MOBILE ENGINE</span>
         </div>
-        <p className="text-slate-400 font-sans">
+        <p className="text-slate-400 font-sans flex items-center gap-2">
           ★ Diet Quality Score • Осознанное питание • Оценка качества и разнообразия
         </p>
-        <span className="text-emerald-500/80">Локальное хранение (Offline First)</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSystemLogModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-emerald-400 rounded-lg text-[11px] font-mono border border-emerald-500/20 cursor-pointer transition-all"
+            title="Открыть системный журнал логов и ошибок"
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Логи системы</span>
+          </button>
+          <span className="text-emerald-500/80">Локальное хранение (Offline First)</span>
+        </div>
       </footer>
     </div>
   );

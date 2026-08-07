@@ -3,6 +3,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User 
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DailyLogEntry, CategoryId } from '../types';
 import { formatDateRu, getDayOfWeekRu, calculatePredictedCalories } from './dqsEngine';
+import { logger } from './logger';
 
 // Ensure Firebase app instance is initialized safely
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -26,8 +27,10 @@ export const initAuth = (
         cachedAccessToken = storedToken;
       }
       if (cachedAccessToken) {
+        logger.info('Auth', 'Google user session active with token', { uid: user.uid, email: user.email });
         if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
       } else if (!isSigningIn) {
+        logger.warn('Auth', 'Google user logged in but access token missing');
         if (onAuthFailure) onAuthFailure();
       }
     } else {
@@ -41,6 +44,7 @@ export const initAuth = (
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
   try {
     isSigningIn = true;
+    logger.info('Auth', 'Initiating Google Sign-In popup');
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (!credential?.accessToken) {
@@ -49,9 +53,18 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 
     cachedAccessToken = credential.accessToken;
     localStorage.setItem('dqs_google_access_token', cachedAccessToken);
+    logger.info('Auth', 'Google Sign-In successful', { email: result.user.email });
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
-    console.error('Google Sign-in error:', error);
+    if (error?.code === 'auth/unauthorized-domain' || error?.message?.includes('unauthorized-domain')) {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'dqs-marathon.vercel.app';
+      const friendlyErr = new Error(
+        `Домен "${currentHost}" не добавлен в список авторизованных доменов Firebase Auth (auth/unauthorized-domain). Добавьте "${currentHost}" в консоли Firebase (Authentication -> Settings -> Authorized domains).`
+      );
+      logger.warn('Auth', `Firebase unauthorized-domain error for ${currentHost}`, { code: error.code });
+      throw friendlyErr;
+    }
+    logger.error('Auth', 'Google Sign-in failed', error);
     throw error;
   } finally {
     isSigningIn = false;
@@ -211,8 +224,10 @@ export async function syncLogsToGoogleSheet(
 
   if (!updateRes.ok) {
     const errText = await updateRes.text();
+    logger.error('Sync', 'Google Sheet sync request failed', { status: updateRes.status, errText });
     throw new Error(`Ошибка записи данных в Google Таблицу: ${errText}`);
   }
 
+  logger.info('Sync', `Successfully synced ${logs.length} daily log entries to Google Sheet`, { spreadsheetId });
   return logs.length;
 }

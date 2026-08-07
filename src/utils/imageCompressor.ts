@@ -4,6 +4,8 @@
  * Reduces photo payload from 5MB+ down to ~80-120KB while maintaining clear visual detail.
  */
 
+import { logger } from './logger';
+
 export interface WatermarkOptions {
   timeStr?: string;
   dateStr?: string;
@@ -29,6 +31,8 @@ export async function compressImage(
           height = 600;
         }
 
+        const originalDims = `${width}x${height}`;
+
         // Calculate downscaled aspect-ratio preserving dimensions
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -46,6 +50,7 @@ export async function compressImage(
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
+          logger.warn('Image', 'Canvas 2D context unavailable, returning raw image input');
           resolve(typeof input === 'string' ? input : img.src);
           return;
         }
@@ -86,15 +91,20 @@ export async function compressImage(
         }
 
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        logger.info('Image', 'Photo successfully compressed & watermarked', {
+          originalDims,
+          newDims: `${width}x${height}`,
+          compressedSizeKB: Math.round(compressedDataUrl.length / 1024),
+        });
         resolve(compressedDataUrl);
       } catch (err) {
-        console.warn('Image compression fallback triggered', err);
+        logger.error('Image', 'Image compression fallback triggered due to canvas exception', err);
         resolve(typeof input === 'string' ? input : img.src);
       }
     };
 
     img.onerror = (err) => {
-      console.error('Image load error during compression', err);
+      logger.error('Image', 'Image load error during compression', err);
       reject(err);
     };
 
@@ -111,7 +121,10 @@ export async function compressImage(
         img.src = e.target?.result as string;
         img.onload = processImage;
       };
-      reader.onerror = (err) => reject(err);
+      reader.onerror = (err) => {
+        logger.error('Image', 'FileReader error loading uploaded photo', err);
+        reject(err);
+      };
       reader.readAsDataURL(input);
     }
   });

@@ -1,4 +1,5 @@
 import { exportAllDataToJson, importAllDataFromJson, DQSFullBackup } from './storage';
+import { logger } from './logger';
 
 const DRIVE_FILE_NAME = 'DQS_App_Data_Backup.json';
 
@@ -21,14 +22,17 @@ export async function findDriveBackupFile(token: string): Promise<DriveFileItem 
 
   if (!res.ok) {
     if (res.status === 401) {
+      logger.warn('Auth', 'Google Drive API returned 401 Unauthorized - token expired');
       throw new Error('Ошибкa авторизации Google (401). Срок действия токена истёк.');
     }
     const text = await res.text();
+    logger.error('Sync', 'Google Drive search failed', { status: res.status, text });
     throw new Error(`Ошибка поиска файла в Google Диск: ${text}`);
   }
 
   const data = await res.json();
   if (data.files && data.files.length > 0) {
+    logger.info('Sync', 'Found existing Google Drive backup file', { fileId: data.files[0].id });
     return data.files[0] as DriveFileItem;
   }
   return null;
@@ -38,6 +42,7 @@ export async function findDriveBackupFile(token: string): Promise<DriveFileItem 
  * Saves current local application data to user's Google Drive
  */
 export async function saveAppDataToDrive(token: string): Promise<{ fileId: string; modifiedTime: string }> {
+  logger.info('Sync', 'Starting backup save to Google Drive');
   const jsonContent = exportAllDataToJson();
   const existingFile = await findDriveBackupFile(token);
 
@@ -57,10 +62,12 @@ export async function saveAppDataToDrive(token: string): Promise<{ fileId: strin
 
     if (!res.ok) {
       const errText = await res.text();
+      logger.error('Sync', 'Failed to update Google Drive backup file', { errText });
       throw new Error(`Ошибка обновления бэкапа в Google Диск: ${errText}`);
     }
 
     const updated = await res.json();
+    logger.info('Sync', 'Successfully updated backup file on Google Drive', { fileId: updated.id || existingFile.id });
     return {
       fileId: updated.id || existingFile.id,
       modifiedTime: new Date().toISOString(),
@@ -97,10 +104,12 @@ export async function saveAppDataToDrive(token: string): Promise<{ fileId: strin
 
     if (!res.ok) {
       const errText = await res.text();
+      logger.error('Sync', 'Failed to create new Google Drive backup file', { errText });
       throw new Error(`Ошибка создания бэкапа в Google Диск: ${errText}`);
     }
 
     const created = await res.json();
+    logger.info('Sync', 'Successfully created new Google Drive backup file', { fileId: created.id });
     return {
       fileId: created.id,
       modifiedTime: new Date().toISOString(),

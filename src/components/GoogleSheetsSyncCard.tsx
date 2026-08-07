@@ -250,6 +250,18 @@ export const GoogleSheetsSyncCard: React.FC<Props> = ({
   const currentSheetId = extractSpreadsheetId(settings.googleSheetId || customSheetInput);
   const sheetUrl = currentSheetId ? `https://docs.google.com/spreadsheets/d/${currentSheetId}` : null;
 
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'dqs-marathon.vercel.app';
+  const [copiedDomain, setCopiedDomain] = useState(false);
+
+  const handleCopyCurrentDomain = () => {
+    navigator.clipboard.writeText(currentHost).then(() => {
+      setCopiedDomain(true);
+      setTimeout(() => setCopiedDomain(false), 2000);
+    });
+  };
+
+  const isUnauthorizedDomainError = statusMessage.includes('unauthorized-domain') || statusMessage.includes('не добавлен в список');
+
   return (
     <div className="bg-[#111] rounded-2xl p-5 border border-emerald-500/30 shadow-xl space-y-5">
       {/* Header */}
@@ -420,11 +432,41 @@ export const GoogleSheetsSyncCard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Status Message */}
+      {/* Status Message & Authorized Domain Helper */}
       {statusMessage && (
-        <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-200 flex items-center gap-2 animate-fadeIn font-mono">
-          <AlertCircle className="w-4 h-4 text-sky-400 shrink-0" />
-          <span>{statusMessage}</span>
+        <div className={`p-4 rounded-xl text-xs flex flex-col gap-3 font-mono animate-fadeIn ${
+          isUnauthorizedDomainError
+            ? 'bg-amber-950/40 border border-amber-500/40 text-amber-200'
+            : 'bg-white/5 border border-white/10 text-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 font-bold">
+            <AlertCircle className={`w-4 h-4 shrink-0 ${isUnauthorizedDomainError ? 'text-amber-400' : 'text-sky-400'}`} />
+            <span>{statusMessage}</span>
+          </div>
+
+          {isUnauthorizedDomainError && (
+            <div className="pt-2 border-t border-amber-500/20 space-y-2 font-sans text-xs">
+              <p className="font-bold text-amber-300">
+                🛠️ Как разрешить вход с текущего доменного адреса ({currentHost}):
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-slate-300 leading-relaxed text-[11px]">
+                <li>Скопируйте домен: <code className="px-1.5 py-0.5 bg-black/60 rounded text-amber-300 font-mono">{currentHost}</code></li>
+                <li>Откройте консоль Firebase: <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-sky-400 underline hover:text-sky-300 font-medium">console.firebase.google.com</a></li>
+                <li>Перейдите в раздел <strong>Authentication → Settings → Authorized domains</strong></li>
+                <li>Нажмите <strong>Add domain</strong> и вставьте скопированный адрес</li>
+              </ol>
+
+              <div className="pt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyCurrentDomain}
+                  className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold rounded-lg transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedDomain ? '✓ Скопировано!' : `Скопировать "${currentHost}"`}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
