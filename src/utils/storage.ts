@@ -32,16 +32,8 @@ export function isAppStorageHydrated(): boolean {
 }
 
 if (typeof window !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && dbInstance) {
-      try {
-        dbInstance.close();
-      } catch (e) {
-        // Ignore
-      }
-      dbInstance = null;
-    }
-  });
+  // We keep the IndexedDB connection open across visibility state transitions.
+  // Standard browser lifecycle automatically manages idle connections.
 }
 
 function getDB(): Promise<IDBDatabase> {
@@ -130,7 +122,10 @@ async function idbGet<T>(storeName: string, key?: string): Promise<T | null> {
       });
       return result;
     } catch (e) {
-      logger.warn('Storage', `idbGet attempt ${attempt + 1} failed, resetting dbInstance`, { error: String(e) });
+      const errStr = String(e).toLowerCase();
+      if (!errStr.includes('closing') && !errStr.includes('hidden') && !errStr.includes('invalidstateerror')) {
+        logger.warn('Storage', `idbGet attempt ${attempt + 1} failed, resetting dbInstance`, { error: String(e) });
+      }
       dbInstance = null;
       if (attempt === 1) return null;
       await new Promise((r) => setTimeout(r, 50));
@@ -181,7 +176,10 @@ async function idbSet(storeName: string, value: any, key?: string): Promise<bool
       });
       if (success) return true;
     } catch (e) {
-      logger.warn('Storage', `idbSet attempt ${attempt + 1} failed, resetting dbInstance`, { error: String(e) });
+      const errStr = String(e).toLowerCase();
+      if (!errStr.includes('closing') && !errStr.includes('hidden') && !errStr.includes('invalidstateerror')) {
+        logger.warn('Storage', `idbSet attempt ${attempt + 1} failed, resetting dbInstance`, { error: String(e) });
+      }
       dbInstance = null;
       if (attempt === 1) return false;
       await new Promise((r) => setTimeout(r, 50));

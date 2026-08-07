@@ -85,7 +85,11 @@ class Logger {
       msg.includes('database is closing') ||
       msg.includes('database is hidden') ||
       msg.includes('connection is closing') ||
-      msg.includes('invalidstateerror')
+      msg.includes('connection is closed') ||
+      msg.includes('database connection is closing') ||
+      msg.includes('dbinstance') ||
+      msg.includes('invalidstateerror') ||
+      msg.includes('the database is closing')
     ) {
       return true;
     }
