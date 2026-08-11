@@ -37,7 +37,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import { DailyLogEntry, UserSettings, WeeklySundayReport, CategoryId } from '../types';
-import { DQS_CATEGORIES, formatDateRu, getDayOfWeekRu } from '../utils/dqsEngine';
+import { DQS_CATEGORIES, formatDateRu, getDayOfWeekRu, getInitialServings } from '../utils/dqsEngine';
 
 interface AnalyticsViewProps {
   logs: DailyLogEntry[];
@@ -93,18 +93,26 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // --- 1. COMPUTED DQS & SERVINGS DATA ---
   const chartData = filteredLogs.map((log) => {
     const healthyCount =
-      (log.servings.vegetables || 0) +
       (log.servings.fruits || 0) +
-      (log.servings.nuts_seeds || 0) +
+      (log.servings.vegetables || 0) +
+      (log.servings.greens || 0) +
+      (log.servings.meat || (log.servings as any).lean_proteins || 0) +
+      (log.servings.dairy || 0) +
+      (log.servings.cheese || 0) +
+      (log.servings.nuts || (log.servings as any).nuts_seeds || 0) +
+      (log.servings.oils || (log.servings as any).oils_fats || 0) +
       (log.servings.whole_grains || 0) +
-      (log.servings.lean_proteins || 0) +
-      (log.servings.dairy || 0);
+      (log.servings.legumes || 0) +
+      (log.servings.potatoes || 0);
 
     const unhealthyCount =
-      (log.servings.refined_grains || 0) +
+      (log.servings.other_grains || (log.servings as any).refined_grains || 0) +
       (log.servings.sweets || 0) +
-      (log.servings.processed_meats || 0) +
-      (log.servings.sugary_drinks_alcohol || 0);
+      (log.servings.sugary_drinks || 0) +
+      (log.servings.alcohol || 0) +
+      (log.servings.fried_food || 0) +
+      (log.servings.processed_meat || (log.servings as any).processed_meats || 0) +
+      ((log.servings as any).sugary_drinks_alcohol || 0);
 
     return {
       date: log.date.substring(5), // MM-DD
@@ -171,25 +179,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     .sort((a, b) => b.count - a.count);
 
   // --- 3. FOOD CONSUMPTION ANALYTICS (POPULAR FOODS) ---
-  const categoryTotals: Record<CategoryId, number> = {
-    vegetables: 0,
-    fruits: 0,
-    nuts_seeds: 0,
-    whole_grains: 0,
-    lean_proteins: 0,
-    dairy: 0,
-    oils_fats: 0,
-    healthy_drinks: 0,
-    refined_grains: 0,
-    sweets: 0,
-    processed_meats: 0,
-    sugary_drinks_alcohol: 0,
-  };
+  const categoryTotals: Record<CategoryId, number> = getInitialServings();
 
   filteredLogs.forEach((l) => {
-    Object.keys(categoryTotals).forEach((catKey) => {
+    Object.keys(l.servings || {}).forEach((catKey) => {
       const key = catKey as CategoryId;
-      categoryTotals[key] += l.servings[key] || 0;
+      if (categoryTotals[key] !== undefined) {
+        categoryTotals[key] += l.servings[key] || 0;
+      }
     });
   });
 

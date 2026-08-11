@@ -16,7 +16,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { CategoryId, DailyLogEntry, FavoriteMealTemplate, PhotoEntry, UserSettings } from '../types';
-import { DQS_CATEGORIES, calculateDailyDQS } from '../utils/dqsEngine';
+import { DQS_CATEGORIES, calculateDailyDQS, getInitialServings } from '../utils/dqsEngine';
 import { compressImage } from '../utils/imageCompressor';
 import { searchFoodDictionary, calculatePortion } from '../utils/foodCalculator';
 
@@ -50,20 +50,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
 }) => {
   const [mealType, setMealType] = useState<MealType>('lunch');
   const [categoryTab, setCategoryTab] = useState<'healthy' | 'restricted'>('healthy');
-  const [servingsAdded, setServingsAdded] = useState<Record<CategoryId, number>>({
-    vegetables: 0,
-    fruits: 0,
-    nuts_seeds: 0,
-    whole_grains: 0,
-    lean_proteins: 0,
-    dairy: 0,
-    oils_fats: 0,
-    healthy_drinks: 0,
-    refined_grains: 0,
-    sweets: 0,
-    processed_meats: 0,
-    sugary_drinks_alcohol: 0,
-  });
+  const [servingsAdded, setServingsAdded] = useState<Record<CategoryId, number>>(() => getInitialServings());
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -98,36 +85,12 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
         setFullnessAfter(initialMealToEdit.fullnessAfter ?? 7);
         setMood(initialMealToEdit.mood);
         setServingsAdded({
-          vegetables: 0,
-          fruits: 0,
-          nuts_seeds: 0,
-          whole_grains: 0,
-          lean_proteins: 0,
-          dairy: 0,
-          oils_fats: 0,
-          healthy_drinks: 0,
-          refined_grains: 0,
-          sweets: 0,
-          processed_meats: 0,
-          sugary_drinks_alcohol: 0,
+          ...getInitialServings(),
           ...(initialMealToEdit.servingsAdded || {}),
         });
       } else {
         setMealType('lunch');
-        setServingsAdded({
-          vegetables: 0,
-          fruits: 0,
-          nuts_seeds: 0,
-          whole_grains: 0,
-          lean_proteins: 0,
-          dairy: 0,
-          oils_fats: 0,
-          healthy_drinks: 0,
-          refined_grains: 0,
-          sweets: 0,
-          processed_meats: 0,
-          sugary_drinks_alcohol: 0,
-        });
+        setServingsAdded(getInitialServings());
         setPhotoUrl(null);
         setCaption('');
         setHungerBefore(log.journal?.hungerBefore ?? 5);
@@ -229,18 +192,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
   const handleApplyTemplate = (tpl: FavoriteMealTemplate) => {
     setMealType(tpl.mealType);
     const newServings = {
-      vegetables: 0,
-      fruits: 0,
-      nuts_seeds: 0,
-      whole_grains: 0,
-      lean_proteins: 0,
-      dairy: 0,
-      oils_fats: 0,
-      healthy_drinks: 0,
-      refined_grains: 0,
-      sweets: 0,
-      processed_meats: 0,
-      sugary_drinks_alcohol: 0,
+      ...getInitialServings(),
       ...tpl.servings,
     };
     setServingsAdded(newServings);

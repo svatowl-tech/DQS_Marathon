@@ -34,6 +34,7 @@ interface SettingsViewProps {
   onUpdateSettings: (settings: UserSettings) => void;
   onResetData: () => void;
   onReloadAppData?: () => void;
+  onRecalculateAllData?: () => void;
 }
 
 const DAY_LABELS = [
@@ -53,6 +54,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onUpdateSettings,
   onResetData,
   onReloadAppData,
+  onRecalculateAllData,
 }) => {
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -137,7 +139,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-12 max-w-4xl mx-auto">
+    <div className="space-y-6 pb-12 w-full max-w-[1800px] mx-auto">
       {/* Header */}
       <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg">
         <h2 className="font-bold text-slate-100 text-lg flex items-center gap-2">
@@ -453,6 +455,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         logs={logs || []}
         onReloadAppData={onReloadAppData}
       />
+
+      {/* DQS V2 COMPATIBILITY & RECALCULATE CARD */}
+      <div className="bg-[#111] rounded-2xl p-5 border border-indigo-500/30 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+          <h3 className="font-bold text-slate-100 text-sm flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-indigo-400" /> Совместимость и Пересчёт DQS v2
+          </h3>
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            17 Категорий
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Система автоматически защищает ваши прошлые дневниковые данные при загрузке. Если вы хотите принудительно обновить все зафиксированные порции и баллы всей истории ({logs?.length || 0} дней) под обновлённый стандарт категорий DQS v2, нажмите кнопку ниже:
+        </p>
+
+        <button
+          onClick={() => {
+            if (onRecalculateAllData) {
+              onRecalculateAllData();
+              setImportStatus('✅ Все дневниковые записи успешно пересчитаны и обновлены до стандарта DQS v2!');
+            }
+          }}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>🔄 Выполнить полный пересчёт всей истории (DQS v2)</span>
+        </button>
+      </div>
 
       {/* DATA SECURITY & PHONE BACKUP CARD */}
       {(() => {

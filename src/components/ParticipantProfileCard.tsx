@@ -101,11 +101,20 @@ export const ParticipantProfileCard: React.FC<ParticipantProfileCardProps> = ({
     setExportSuccess(false);
 
     try {
-      const dataUrl = await toPng(cardRef.current, {
+      const node = cardRef.current;
+      const width = node.scrollWidth || node.offsetWidth || 500;
+      const height = node.scrollHeight || node.offsetHeight || 650;
+
+      const dataUrl = await toPng(node, {
         cacheBust: true,
         pixelRatio: 2,
+        width,
+        height,
         style: {
-          transform: 'scale(1)',
+          height: `${height}px`,
+          maxHeight: 'none',
+          overflow: 'visible',
+          transform: 'none',
         },
       });
 

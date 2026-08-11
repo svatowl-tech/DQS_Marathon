@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, RefreshCw, Sparkles, X, CheckCircle2, Terminal } from 'lucide-react';
 import { ActiveTab, DailyLogEntry, PhotoEntry, UserSettings, WeeklySundayReport } from './types';
 import {
   loadDailyLogs,
@@ -16,7 +16,15 @@ import {
   hydrateFromIndexedDB,
   DEFAULT_SETTINGS,
 } from './utils/storage';
-import { calculateDailyDQS, getInitialDiversity, getInitialServings } from './utils/dqsEngine';
+import {
+  calculateDailyDQS,
+  getInitialDiversity,
+  getInitialServings,
+  hasLegacyEntries,
+  migrateAllLogs,
+  migrateDailyLogEntry,
+  migrateUserSettings,
+} from './utils/dqsEngine';
 import {
   fetchInternetTimeAndZone,
   getFormattedLocalDate,
@@ -37,21 +45,48 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { PrintView } from './components/PrintView';
 import { SettingsView } from './components/SettingsView';
 import { FoodDictionaryView } from './components/FoodDictionaryView';
+import { WeighInView } from './components/WeighInView';
+import { MetabolismCalculatorView } from './components/MetabolismCalculatorView';
+import { WeightLossAnalysisView } from './components/WeightLossAnalysisView';
 import { ToastContainer } from './components/ToastContainer';
+import { toast } from './utils/toast';
 import { SystemLogModal } from './components/SystemLogModal';
-import { Terminal } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [logs, setLogs] = useState<DailyLogEntry[]>(() => loadDailyLogs());
   const [settings, setSettings] = useState<UserSettings>(() => loadSettings());
   const [reports, setReports] = useState<WeeklySundayReport[]>(() => loadSundayReports());
+  const [showMigrationBanner, setShowMigrationBanner] = useState<boolean>(() => {
+    return hasLegacyEntries(loadDailyLogs());
+  });
   const [isQuickMealModalOpen, setIsQuickMealModalOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState<PhotoEntry | null>(null);
   const [isStartWizardOpen, setIsStartWizardOpen] = useState(false);
   const [isExtendedPdfModalOpen, setIsExtendedPdfModalOpen] = useState(false);
   const [pdfReportType, setPdfReportType] = useState<'weekly' | 'monthly'>('weekly');
   const [isSystemLogModalOpen, setIsSystemLogModalOpen] = useState(false);
+
+  const handleManualRecalculateAll = useCallback(() => {
+    const currentL = loadDailyLogs();
+    const currentS = loadSettings();
+    const migratedLogs = migrateAllLogs(currentL);
+    const migratedSettings = migrateUserSettings(currentS);
+
+    setLogs(migratedLogs);
+    setSettings(migratedSettings);
+    saveDailyLogs(migratedLogs);
+    saveSettings(migratedSettings);
+
+    setShowMigrationBanner(false);
+
+    toast.show({
+      type: 'success',
+      title: 'DQS v2 Пересчёт выполнен',
+      message: `Все записи (${migratedLogs.length} дн.) успешно обновлены до стандарта DQS v2!`,
+      duration: 4000,
+    });
+  }, []);
 
   const handleOpenQuickMealModal = (meal?: unknown) => {
     if (meal && typeof meal === 'object' && 'id' in meal && typeof (meal as any).id === 'string') {
@@ -176,6 +211,9 @@ export default function App() {
       const hydrated = await hydrateFromIndexedDB();
       if (hydrated.logs && hydrated.logs.length > 0) {
         setLogs(hydrated.logs);
+        if (hasLegacyEntries(hydrated.logs)) {
+          setShowMigrationBanner(true);
+        }
       }
       if (hydrated.settings) {
         setSettings(hydrated.settings);
@@ -271,14 +309,15 @@ export default function App() {
   };
 
   const handleUpdateLog = (updatedLog: DailyLogEntry) => {
+    const normalized = migrateDailyLogEntry(updatedLog);
     setLogs((prev) => {
-      const idx = prev.findIndex((l) => l.date === updatedLog.date);
+      const idx = prev.findIndex((l) => l.date === normalized.date);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = updatedLog;
+        copy[idx] = normalized;
         return copy;
       } else {
-        return [...prev, updatedLog];
+        return [...prev, normalized];
       }
     });
   };
@@ -350,7 +389,7 @@ export default function App() {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} todayLog={getTodayLog()} />
 
       {/* Main Content View with Mobile Safe Padding */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 pb-24 sm:pb-8">
+      <main className="flex-1 w-full max-w-[1800px] mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-24 sm:pb-8">
         <TimeSyncBar
           netTimeInfo={netTimeInfo}
           isSyncing={isSyncingTime}
@@ -358,6 +397,47 @@ export default function App() {
           dayChangeAlert={dayChangeAlert}
           onDismissAlert={() => setDayChangeAlert(null)}
         />
+
+        {/* DQS v2 Migration & Recalculate Banner */}
+        {showMigrationBanner && logs.length > 0 && (
+          <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-950/70 via-purple-950/60 to-slate-900 border border-amber-500/40 text-slate-200 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-2xl mt-0.5 shrink-0 shadow-inner">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="font-bold text-white text-sm flex items-center gap-2 flex-wrap">
+                  <span>✨ Совместимость со старыми данными (DQS v2)</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono font-semibold">
+                    Защита от сбоев
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                  Обнаружена история предыдущей версии ({logs.length} дн.). Ваши записи защищены и полностью работают. Нажмите кнопку, чтобы пересчитать все прошлые баллы по новой 17-категорийной системе DQS.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+              <button
+                type="button"
+                onClick={handleManualRecalculateAll}
+                className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Пересчитать всё (DQS v2)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMigrationBanner(false)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
+                title="Скрыть"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {activeTab === 'home' && (
           <HomeDashboardView
@@ -389,6 +469,18 @@ export default function App() {
             onUpdateLog={handleUpdateLog}
             onNavigateToLog={() => setActiveTab('log')}
           />
+        )}
+
+        {activeTab === 'weigh_in' && (
+          <WeighInView logs={logs} onUpdateLog={handleUpdateLog} />
+        )}
+
+        {activeTab === 'metabolism' && (
+          <MetabolismCalculatorView settings={settings} onUpdateSettings={setSettings} />
+        )}
+
+        {activeTab === 'weight_loss_analysis' && (
+          <WeightLossAnalysisView logs={logs} settings={settings} />
         )}
 
         {activeTab === 'table' && (
@@ -427,6 +519,7 @@ export default function App() {
             onUpdateSettings={setSettings}
             onResetData={handleResetData}
             onReloadAppData={handleReloadAppData}
+            onRecalculateAllData={handleManualRecalculateAll}
           />
         )}
       </main>

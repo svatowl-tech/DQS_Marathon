@@ -11,6 +11,7 @@ import {
   getWeekDates,
   getInitialServings,
   getInitialDiversity,
+  isHealthyCategory,
 } from '../utils/dqsEngine';
 
 interface DQSTableSheetProps {
@@ -183,14 +184,14 @@ export const DQSTableSheet: React.FC<DQSTableSheetProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-slate-200">
-              {/* POSITIVE CATEGORIES HEADER */}
+              {/* POSITIVE & LIMITED & NEUTRAL CATEGORIES HEADER */}
               <tr className="bg-emerald-500/10 font-bold text-emerald-400 text-[11px]">
                 <td colSpan={8} className="p-2 px-3 uppercase tracking-wider font-mono">
-                  ✔ Здоровые категории (Положительные баллы)
+                  ✔ Полезные, ограниченные и нейтральные категории
                 </td>
               </tr>
 
-              {DQS_CATEGORIES.filter((c) => c.group === 'positive').map((cat) => (
+              {DQS_CATEGORIES.filter((c) => c.group !== 'negative').map((cat) => (
                 <tr key={cat.id} className="hover:bg-white/5 transition-colors">
                   <td className="p-3 font-semibold text-slate-200 bg-white/2">
                     <div>{cat.nameRu}</div>
@@ -202,7 +203,7 @@ export const DQSTableSheet: React.FC<DQSTableSheetProps> = ({
                     const count = log.servings[cat.id] || 0;
                     const hasDiv = log.diversity[cat.id] || false;
                     const points =
-                      getCategoryPoints(cat.id, count) + (hasDiv && count >= 1 ? 2 : 0);
+                      getCategoryPoints(cat.id, count) + (isHealthyCategory(cat.id) && hasDiv && count >= 1 ? 1 : 0);
 
                     return (
                       <td key={log.date} className="p-2 border-l border-white/5 text-center">
@@ -225,18 +226,20 @@ export const DQSTableSheet: React.FC<DQSTableSheetProps> = ({
                                 : 'bg-white/5 border-white/10 text-slate-300'
                             }`}
                           />
-                          <label className="flex items-center gap-1 cursor-pointer text-[10px] text-slate-400">
-                            <input
-                              type="checkbox"
-                              checked={hasDiv}
-                              onChange={() => handleCellDiversityToggle(log.date, cat.id)}
-                              className="w-3 h-3 text-emerald-500 bg-white/5 border-white/20 rounded accent-emerald-500"
-                            />
-                            <span>3+</span>
-                          </label>
+                          {isHealthyCategory(cat.id) && (
+                            <label className="flex items-center gap-1 cursor-pointer text-[10px] text-slate-400">
+                              <input
+                                type="checkbox"
+                                checked={hasDiv}
+                                onChange={() => handleCellDiversityToggle(log.date, cat.id)}
+                                className="w-3 h-3 text-emerald-500 bg-white/5 border-white/20 rounded accent-emerald-500"
+                              />
+                              <span>3+</span>
+                            </label>
+                          )}
                           {count > 0 && (
                             <span className="text-[10px] font-mono font-bold text-emerald-400">
-                              +{points}б
+                              {points > 0 ? `+${points}б` : `${points}б`}
                             </span>
                           )}
                         </div>

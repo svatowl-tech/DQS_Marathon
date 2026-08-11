@@ -19,21 +19,26 @@ import {
 } from 'lucide-react';
 import { DQS_CATEGORIES } from '../utils/dqsEngine';
 
-// Cheat sheet dataset from official PDF
+// Non-obvious foods cheat sheet dataset according to official PDF guide (11.08.2026)
 const NON_OBVIOUS_FOODS = [
-  { food: 'Банан, картофель', realCategory: 'Гарнир обычный (не ЦЗ!)', note: 'Картофель — рекордсмен по насыщению за свои калории, обязателен для худеющих', group: 'refined' },
-  { food: 'Сухофрукты, овощные чипсы', realCategory: 'Гарнир обычный', note: 'Высокая плотность сахаров/углеводов', group: 'refined' },
-  { food: 'Арбуз', realCategory: 'Полезные напитки (без сахара)', note: 'Считается как жидкая фаза / бескалорийные напитки', group: 'healthy' },
-  { food: 'Сало, бекон', realCategory: 'Масла и жиры', note: 'Входят в категорию масел (но крайне не рекомендуются)', group: 'oils' },
-  { food: 'Сливочное масло, гхи', realCategory: 'Масла и жиры', note: '1 порция = 5г. До 10г/день (2п) = лекарство, более = яд', group: 'oils' },
-  { food: 'Сладкие йогурты, пудинги', realCategory: 'Сладкое и десерты', note: 'Из-за добавленного сахара вычитают -2б', group: 'sweets' },
-  { food: 'Сладкий кофе / какао / сладкий чай', realCategory: 'Нездоровые напитки', note: 'Каждый стакан вычитает -2б', group: 'unhealthy_drinks' },
-  { food: 'Сыр для бургеров, плавленые сырки', realCategory: 'Ультра-обработанная еда', note: 'Обработанные сырные продукты', group: 'ultra' },
-  { food: 'Макадамия в сиропе', realCategory: 'Сладкое и десерты', note: 'Поскольку вымочена в сахарном сиропе', group: 'sweets' },
-  { food: 'Продукты на подсластителях (без сахара)', realCategory: 'В соответствующую цельную категорию', note: 'Например протеин -> Молочка/Белок (не в сладкое)', group: 'healthy' },
-  { food: 'Напитки на подсластителях (Zero)', realCategory: 'Никуда не учитываем (0 баллов)', note: 'Не дают плюсов и не снимают баллы', group: 'zero' },
-  { food: 'Шаверма хорошая (не зажаренная, свежие овощи, мякоть)', realCategory: 'Разложить на компоненты', note: 'Овощи (+2) + Мясо (+2) + Масло (+1) + Лаваш (0)', group: 'combo' },
-  { food: 'Шаверма плохая (кетчунез, жирный вертел, фритюр)', realCategory: '3 порции Ультра-обработки', note: 'Снимает -6 баллов DQS', group: 'ultra' },
+  { food: 'Банан, сухофрукты', realCategory: 'Другие гарниры (нейтральная)', note: 'Относительно много углеводов/калорий при небольшом объеме. 120г банан без кожуры = 1п; 80г сухофрукты = 1п.', group: 'neutral' },
+  { food: 'Авокадо', realCategory: 'Масло и добавленные жиры', note: 'Преимущественно источник жиров. Половина плода = 1 порция.', group: 'limited' },
+  { food: 'Картофель, батат', realCategory: 'Картофель и батат (отдельная)', note: 'Отварной/запеченный картофель хорошо насыщает. Фри и чипсы переходят в «Жареное во фритюре».', group: 'limited' },
+  { food: 'Зелень, чеснок, имбирь', realCategory: 'Зелень и пряные растения', note: 'Отдельная категория! Если зелень — основа салата (100–200г), записывайте как Овощи. Сухие специи = 0.5п/день.', group: 'healthy' },
+  { food: 'Маслины, квашеная капуста, маринованные огурцы', realCategory: 'Овощи', note: 'Остаются в категории «Овощи» (несмотря на соль/ферментацию).', group: 'healthy' },
+  { food: 'Хумус', realCategory: 'Бобовые + Масло', note: 'Хумус — это нут плюс жиры. Не приравнивайте большую порцию хумуса к чистым бобовым.', group: 'combo' },
+  { food: 'Тофу', realCategory: 'Мясо и белок', note: 'Учитывается как источник белка (в группе Мясо/Птица/Рыба/Яйца).', group: 'healthy' },
+  { food: 'Кукуруза, горошек', realCategory: 'Бобовые', note: 'Кукуруза и горох в любом виде относятся к категории Бобовые.', group: 'healthy' },
+  { food: 'Сыры, сметана, сливки', realCategory: 'Сыры и жирная молочка', note: 'Преимущественно источники жиров. 15г твердый сыр, 30г мягкий/сметана, 45г брынза.', group: 'limited' },
+  { food: 'Кофе с сиропом, 3 в 1, морсы, квас', realCategory: 'Сладкие напитки', note: 'Калорийные напитки, не являющиеся цельным продуктом.', group: 'restricted' },
+  { food: 'Раф-кофе', realCategory: 'Сыры и жирная молочка (сливки)', note: 'Учитывайте как сливки (источник жиров).', group: 'limited' },
+  { food: 'Капучино / Латте без сахара', realCategory: 'Диетическая молочка', note: 'Записывается в молочку, если молока не меньше половины порции (от 125 мл).', group: 'healthy' },
+  { food: 'Домашний фреш / смузи', realCategory: '50% Фрукты/Овощи + 50% Напитки', note: 'Наполовину во фрукты или овощи, наполовину в калорийные напитки. Магазинный сок = 100% Сладкие напитки.', group: 'combo' },
+  { food: 'Напитки на подсластителях (Zero)', realCategory: 'Не учитываются в DQS (0 баллов)', note: 'Не дают плюсов и не снимают баллы DQS.', group: 'zero' },
+  { food: 'Продукты на подсластителях без сахара', realCategory: 'По основе (Молочка / Гарнир)', note: 'Сладкий йогурт без сахара остаётся молочкой, протеиновое печенье -> Другие гарниры.', group: 'healthy' },
+  { food: 'Спортивное питание при тренировке >60 мин', realCategory: 'Калории да, Сладкое нет', note: 'При интенсивной тренировке быстрые углеводы можно не относить к сладкому.', group: 'sport' },
+  { food: 'Шаверма / Бургер хорошего качества', realCategory: 'Разложить на компоненты', note: 'Мясо (Мясо) + Овощи (Овощи) + Соус (Масло) + Булка/Лаваш (Другие гарниры).', group: 'combo' },
+  { food: 'Наггетсы, шницели во фритюре', realCategory: 'Жареное во фритюре + Переработанное мясо', note: 'При толстой панировке/фритюре — Жареное; как промышленный полуфабрикат — Переработанное мясо.', group: 'restricted' },
 ];
 
 export const DQSGuideView: React.FC = () => {
@@ -48,7 +53,7 @@ export const DQSGuideView: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 pb-12 max-w-5xl mx-auto">
+    <div className="space-y-6 pb-12 w-full max-w-[1800px] mx-auto">
       {/* Header Banner */}
       <div className="bg-[#111] rounded-2xl p-6 border border-white/5 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -56,24 +61,23 @@ export const DQSGuideView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-xs font-bold border border-emerald-500/30">
-                ОФИЦИАЛЬНЫЙ ГАЙД DQS
+                ОФИЦИАЛЬНЫЙ ГАЙД DQS (11.08.2026)
               </span>
-              <span className="text-xs text-slate-400 font-mono">Diet Quality Score</span>
+              <span className="text-xs text-slate-400 font-mono">Diet Quality Score v3.0</span>
             </div>
             <h1 className="text-2xl font-black text-slate-100 tracking-tight">
-              Интерактивный справочник & Правила системы
+              Система Оценки Качества Питания DQS (17 Категорий)
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-              Оцениваем качество и баланс рациона без подсчета калорий и взвешивания еды в граммах.
-              Стабильные порции, наглядные примеры и быстрая классификация продуктов.
+              Оцениваем качество и баланс рациона по ролям продуктов в организме. Без взвешивания каждого грамма и подсчета калорий.
             </p>
           </div>
 
           <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10 shrink-0">
             <ShieldCheck className="w-8 h-8 text-emerald-400" />
             <div className="text-xs">
-              <div className="font-bold text-slate-100">4 Столпа DQS</div>
-              <div className="text-slate-400 text-[11px]">Категории • Разнообразие • Порции • Регулярность</div>
+              <div className="font-bold text-slate-100">17 Категорий DQS</div>
+              <div className="text-slate-400 text-[11px]">8 Полезных • 3 Ограниченно • 1 Нейтральная • 5 Ограничивать</div>
             </div>
           </div>
         </div>
@@ -88,7 +92,7 @@ export const DQSGuideView: React.FC = () => {
                 : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> Таблица 11 Категорий
+            <BookOpen className="w-4 h-4" /> 17 Категорий Продуктов
           </button>
 
           <button
@@ -99,7 +103,7 @@ export const DQSGuideView: React.FC = () => {
                 : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
             }`}
           >
-            <Search className="w-4 h-4" /> Неочевидные продукты
+            <Search className="w-4 h-4" /> Шпаргалка по продуктам
           </button>
 
           <button
@@ -110,7 +114,7 @@ export const DQSGuideView: React.FC = () => {
                 : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
             }`}
           >
-            <Droplet className="w-4 h-4" /> Порции & Впитывание масла
+            <Droplet className="w-4 h-4" /> Порции & Разнообразие
           </button>
 
           <button
@@ -132,60 +136,126 @@ export const DQSGuideView: React.FC = () => {
                 : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
             }`}
           >
-            <Scale className="w-4 h-4" /> Целевые ориентиры
+            <Scale className="w-4 h-4" /> Цели и Шкала
           </button>
         </div>
       </div>
 
-      {/* TAB 1: CATEGORIES TABLE */}
+      {/* TAB 1: 17 CATEGORIES */}
       {activeTab === 'categories' && (
         <div className="space-y-6">
-          <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-4">
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-400" />
-              11 Категорий Продуктов и Их Начисление Баллов
-            </h2>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Каждая категория выполняет свою биологическую функцию. Чем выше качество и разнообразие в группе — тем больше баллов DQS получает день.
-            </p>
+          {/* Group 1: 8 Healthy Categories */}
+          <div className="bg-[#111] rounded-2xl p-5 border border-emerald-500/20 shadow-lg space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h2 className="text-base font-bold text-emerald-400 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                8 Полезных Категорий (Начисляют максимальные баллы + Разнообразие)
+              </h2>
+              <span className="text-xs font-mono text-emerald-400/80 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                Разнообразие 3+ вида = +1 балл
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {DQS_CATEGORIES.map((cat, idx) => (
-                <div
-                  key={cat.id}
-                  className={`p-4 rounded-xl border space-y-3 transition-all ${
-                    cat.group === 'positive'
-                      ? 'bg-emerald-500/5 border-emerald-500/20'
-                      : 'bg-rose-500/5 border-rose-500/20'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-white/10 text-slate-300 font-mono text-xs font-bold flex items-center justify-center shrink-0">
-                        {idx + 1}
-                      </span>
-                      <h3 className="font-bold text-slate-100 text-sm">{cat.nameRu}</h3>
-                    </div>
-                    <span
-                      className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${
-                        cat.group === 'positive'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                      }`}
-                    >
-                      {cat.group === 'positive' ? 'Здоровая (+)' : 'Ограничение (-)'}
+              {DQS_CATEGORIES.filter((c) => c.group === 'positive').map((cat) => (
+                <div key={cat.id} className="p-4 rounded-xl border bg-emerald-500/5 border-emerald-500/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-100 text-sm">{cat.nameRu}</h3>
+                    <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                      Полезная
                     </span>
                   </div>
+                  <p className="text-xs text-slate-300">{cat.description}</p>
+                  <div className="bg-black/40 p-2 rounded-lg border border-white/5 text-xs font-mono space-y-1">
+                    <div className="text-slate-400 text-[11px]"><b>1 порция:</b> {cat.portionExample}</div>
+                    <div className="text-emerald-400 text-[11px]"><b>Баллы:</b> {cat.scoring.map((s, i) => `${i + 1}п: ${s > 0 ? '+' + s : s}`).join(' | ')}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-                  <p className="text-xs text-slate-300 leading-normal">{cat.description}</p>
+          {/* Group 2: 3 Limited Healthy Categories */}
+          <div className="bg-[#111] rounded-2xl p-5 border border-amber-500/20 shadow-lg space-y-4">
+            <div className="border-b border-white/10 pb-3">
+              <h2 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <Info className="w-5 h-5 text-amber-400" />
+                3 Ограниченно Полезных Категории (Польза зависит от размера порции)
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Первые порции приносят пользу, но при избытке баллы не растут или снижаются.</p>
+            </div>
 
-                  <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 text-xs font-mono space-y-1">
-                    <div className="text-slate-400 text-[11px]">
-                      <b>Размер 1 порции:</b> {cat.portionExample}
-                    </div>
-                    <div className="text-emerald-400 text-[11px]">
-                      <b>Схема баллов:</b> {cat.scoring.map((s, i) => `${i + 1}п: ${s > 0 ? '+' + s : s}`).join(' | ')}
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {DQS_CATEGORIES.filter((c) => c.group === 'limited').map((cat) => (
+                <div key={cat.id} className="p-4 rounded-xl border bg-amber-500/5 border-amber-500/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-100 text-sm">{cat.nameRu}</h3>
+                    <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
+                      Ограниченно
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">{cat.description}</p>
+                  <div className="bg-black/40 p-2 rounded-lg border border-white/5 text-xs font-mono space-y-1">
+                    <div className="text-slate-400 text-[11px]"><b>1 порция:</b> {cat.portionExample}</div>
+                    <div className="text-amber-400 text-[11px]"><b>Баллы:</b> {cat.scoring.map((s, i) => `${i + 1}п: ${s > 0 ? '+' + s : s}`).join(' | ')}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Group 3: 1 Neutral Category */}
+          <div className="bg-[#111] rounded-2xl p-5 border border-slate-500/20 shadow-lg space-y-4">
+            <div className="border-b border-white/10 pb-3">
+              <h2 className="text-base font-bold text-slate-300 flex items-center gap-2">
+                <Utensils className="w-5 h-5 text-slate-400" />
+                1 Нейтральная («Серая») Категория
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Не обязательно исключать, но лучше не строить на них весь рацион.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {DQS_CATEGORIES.filter((c) => c.group === 'neutral').map((cat) => (
+                <div key={cat.id} className="p-4 rounded-xl border bg-white/5 border-white/10 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-100 text-sm">{cat.nameRu}</h3>
+                    <span className="text-[10px] font-mono font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded border border-white/20">
+                      Нейтральная (0б)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">{cat.description}</p>
+                  <div className="bg-black/40 p-2 rounded-lg border border-white/5 text-xs font-mono space-y-1">
+                    <div className="text-slate-400 text-[11px]"><b>1 порция:</b> {cat.portionExample}</div>
+                    <div className="text-slate-300 text-[11px]"><b>Баллы:</b> {cat.scoring.map((s, i) => `${i + 1}п: ${s > 0 ? '+' + s : s}`).join(' | ')}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Group 4: 5 Restricted Categories */}
+          <div className="bg-[#111] rounded-2xl p-5 border border-rose-500/20 shadow-lg space-y-4">
+            <div className="border-b border-white/10 pb-3">
+              <h2 className="text-base font-bold text-rose-400 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+                5 Категорий, Которые Стоит Ограничивать (Минус-баллы DQS)
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Ультра-обработка, добавленный сахар и трансжиры вычитают баллы из дневного DQS.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {DQS_CATEGORIES.filter((c) => c.group === 'negative').map((cat) => (
+                <div key={cat.id} className="p-4 rounded-xl border bg-rose-500/5 border-rose-500/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-100 text-sm">{cat.nameRu}</h3>
+                    <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">
+                      Ограничивать
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">{cat.description}</p>
+                  <div className="bg-black/40 p-2 rounded-lg border border-white/5 text-xs font-mono space-y-1">
+                    <div className="text-slate-400 text-[11px]"><b>1 порция:</b> {cat.portionExample}</div>
+                    <div className="text-rose-400 text-[11px]"><b>Баллы:</b> {cat.scoring.map((s, i) => `${i + 1}п: ${s}`).join(' | ')}</div>
                   </div>
                 </div>
               ))}
@@ -204,7 +274,7 @@ export const DQSGuideView: React.FC = () => {
                 Справочник «Куда на самом деле относить продукт?»
               </h2>
               <p className="text-xs text-slate-400">
-                Поиск по не очевидным продуктам и сложным блюдам
+                Официальные правила классификации не очевидных продуктов и напитков
               </p>
             </div>
 
@@ -212,7 +282,7 @@ export const DQSGuideView: React.FC = () => {
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Искать (банан, шаверма, сыр...)"
+                placeholder="Искать (банан, авокадо, кофе...)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
@@ -224,9 +294,9 @@ export const DQSGuideView: React.FC = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-white/10 text-slate-400 font-mono">
-                  <th className="p-2.5">Продукт / Блюдо</th>
-                  <th className="p-2.5">Куда на самом деле относится</th>
-                  <th className="p-2.5">Причина и логика DQS</th>
+                  <th className="p-2.5">Продукт / Напиток / Блюдо</th>
+                  <th className="p-2.5">Категория в DQS</th>
+                  <th className="p-2.5">Логика DQS & Примечания</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -247,47 +317,64 @@ export const DQSGuideView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: PORTIONS & OIL ABSORPTION */}
+      {/* TAB 3: PORTIONS & DIVERSITY RULES */}
       {activeTab === 'oil_rules' && (
         <div className="space-y-6">
           <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-4">
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <Droplet className="w-5 h-5 text-emerald-400" />
-              Правило Порции & Впитывание Жира При Жарке
+              Шпаргалка по Порциям & Правила Разнообразия
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
                 <h3 className="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
-                  ⚡ ПРАВИЛО ПОРЦИИ
+                  📏 ШПАРГАЛКА ПО ПОРЦИЯМ (ОФИЦИАЛЬНЫЕ ОРИЕНТИРЫ)
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Порция — это условная мерная единица (как килограммы или сантиметры), а не норма или ограничение!
-                  Внесите количество порций за день и поставьте галочку «3+», если съели 3+ разных продукта в категории.
-                </p>
-                <ul className="text-xs text-slate-400 space-y-1 pt-2 font-mono">
-                  <li>• <b>Мясо/Рыба:</b> 120г сырого / 1 ладонь</li>
-                  <li>• <b>Злаки/Бобовые:</b> 60г сухого → ~120г готового</li>
-                  <li>• <b>Овощи/Фрукты:</b> 120г / 1 кулак / 1 плод</li>
-                  <li>• <b>Орехи:</b> 10г (небольшая горсть)</li>
-                  <li>• <b>Масла:</b> 5г (1 ч.л.)</li>
+                <ul className="text-xs text-slate-300 space-y-1.5 font-mono">
+                  <li>• <b>Фрукты:</b> 120г (яблоко, апельсин, груша, 2 киви). Арбуз — 250г.</li>
+                  <li>• <b>Овощи:</b> 120г (2 огурца / 1 томат / горсть).</li>
+                  <li>• <b>Зелень:</b> 10–30г (руккола 30г; укроп, чеснок, имбирь 10г).</li>
+                  <li>• <b>Мясо/Рыба/Яйца:</b> 120г сырого; 2 яйца = 1п (1 яйцо = 0.5п); 60г икры = 1п.</li>
+                  <li>• <b>Молочка:</b> Густая 120г (творог, скир, йогурт); Жидкая 250мл (молоко, кефир).</li>
+                  <li>• <b>Сыры:</b> Твердые 15г, Мягкие/сметана 30г, Рассольные 45г.</li>
+                  <li>• <b>Масло:</b> 3г масло; 5г майонез; 0.5 плода авокадо.</li>
+                  <li>• <b>Орехи:</b> 10г (горсть / 1 ст.л.).</li>
+                  <li>• <b>Цельные злаки:</b> 50–60г сухих / 120–180г готовых; ЦЗ хлеб 80г.</li>
+                  <li>• <b>Бобовые:</b> 50–60г сухих / 170–220г готовых.</li>
+                  <li>• <b>Картофель:</b> 200–300г готового.</li>
+                  <li>• <b>Другие гарниры:</b> 50–60г сухих / 170–220г готовых; хлеб/сухофрукты 80г; банан 120г.</li>
+                  <li>• <b>Сладкое:</b> 30г концентрированного; 60г выпечки; 120г десерта.</li>
+                  <li>• <b>Сладкие напитки:</b> 240мл (при 35–40 ккал/100мл).</li>
+                  <li>• <b>Алкоголь:</b> 250мл пива; 150мл вина; 30мл крепкого (1п = ~10мл этанола).</li>
+                  <li>• <b>Жареное во фритюре:</b> 120г блюда / 60г сухих снеков.</li>
+                  <li>• <b>Переработанное мясо:</b> 120г / 60г сушеных снеков.</li>
                 </ul>
               </div>
 
-              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
                 <h3 className="font-bold text-amber-400 text-sm flex items-center gap-1.5">
-                  🍳 ВПИТЫВАНИЕ МАСЛА ПРИ ЖАРКЕ
+                  🌟 ПРАВИЛА РАЗНООБРАЗИЯ В DQS
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  При приготовлении часть масла остается в сковороде, а часть полностью впитывается в продукт:
+                  Разнообразие учитывается <b>только внутри полезных категорий</b>. Если за день в одной полезной категории набралось <b>3 разных продукта</b>, ставится отметка — это даёт <b>+1 балл</b>.
                 </p>
-                <div className="space-y-2 pt-2 text-xs">
-                  <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-slate-200">
-                    <b className="text-amber-400">50% Впитывание:</b> Цельное мясо, курица, рыба, яичница (половина налитого масла уходит в блюдо).
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-slate-200 space-y-1">
+                    <b className="text-amber-400">Исключение 1 (Гарниры):</b>
+                    <p className="text-[11px] text-slate-300">Бобовые, цельные злаки и картофель считаются вместе при оценке разнообразия гарниров.</p>
                   </div>
-                  <div className="p-2 rounded bg-rose-500/10 border border-rose-500/20 text-slate-200">
-                    <b className="text-rose-400">100% Впитывание:</b> Фарш, котлеты, запеченные овощи, картофель, хлеб, гренки (впитывают всё масло до капли).
+                  <div className="p-2.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-slate-200 space-y-1">
+                    <b className="text-emerald-400">Исключение 2 (Молочка):</b>
+                    <p className="text-[11px] text-slate-300">Диетическая и жирная молочка — разные категории, но разнообразие для них оценивается совместно.</p>
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-white/10">
+                  <h4 className="font-bold text-slate-200 text-xs mb-1">🍳 Учет масла при жарке:</h4>
+                  <p className="text-xs text-slate-400">
+                    Учитывайте только то масло, которое пошло в вашу порцию. При фритюре масло отдельно не считается — блюдо записывается в «Жареное во фритюре».
+                  </p>
                 </div>
               </div>
             </div>
@@ -301,48 +388,48 @@ export const DQSGuideView: React.FC = () => {
           <div className="bg-[#111] rounded-2xl p-5 border border-white/5 shadow-lg space-y-4">
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <PieChart className="w-5 h-5 text-emerald-400" />
-              Примеры Рационов из Практики DQS
+              Примеры Рационов и Анализ DQS
             </h2>
 
             <div className="space-y-4">
-              {/* Day 1: High DQS */}
+              {/* High DQS Day */}
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-400 text-sm">🌟 ДЕНЬ С ВЫСОКИМ DQS (+22 балла)</span>
-                  <span className="text-xs font-mono font-bold bg-emerald-500 text-black px-2 py-0.5 rounded">Зеленый день</span>
+                  <span className="font-bold text-emerald-400 text-sm">🌟 ОТЛИЧНЫЙ ДЕНЬ (DQS +20)</span>
+                  <span className="text-xs font-mono font-bold bg-emerald-500 text-black px-2 py-0.5 rounded">Зеленая зона</span>
                 </div>
                 <div className="text-xs text-slate-300 space-y-1 leading-relaxed">
-                  <p><b>Завтрак:</b> Овсянка ЦЗ 65г + Молоко 145г + Творог 65г + Орехи 11г + Шоколад 11г + Кофе + Нектарин 180г</p>
-                  <p><b>Обед:</b> ЦЗ Макароны 60г + Сыр Сулугуни 22г + 2 Яйца + Цветная капуста/перец 150г</p>
-                  <p><b>Ужин:</b> Рис обычный 70г + Куриное филе 170г + Помидоры/зелень + Оливковое масло 10г</p>
-                  <p><b>Второй ужин:</b> Персик 120г + 1 Яйцо + Баунти 30г</p>
-                  <p className="text-emerald-300 pt-1 font-mono"><b>Итого:</b> Растения 5п (+10), Мясо 3п (+5), Молочка 3п (+5), ЦЗ 2п (+4), Полезные напитки 1п (+1), Орехи 1п (+2)... Галочка разнообразия!</p>
+                  <p><b>Завтрак:</b> Овсянка ЦЗ 60г (+2) + Молоко 250мл (+2) + Яблоко 120г (+2) + Грецкие орехи 10г (+2)</p>
+                  <p><b>Обед:</b> Запечённый лосось 120г (+2) + Киноа 150г (+2) + Салат из огурцов/томатов/зелени с оливковым маслом 5г (+2 овощи, +2 зелень, +1 масло)</p>
+                  <p><b>Полдник:</b> Творог 120г (+2) + Голубика 120г (+2)</p>
+                  <p><b>Ужин:</b> Отварной картофель 200г (+2) + Тушеная говядина 120г (+2) + Квашеная капуста 120г (+2)</p>
+                  <p className="text-emerald-300 pt-1 font-mono"><b>Бонусы разнообразия:</b> Фрукты (+1), Овощи (+1), Мясо (+1). Высокий DQS балл!</p>
                 </div>
               </div>
 
-              {/* Day 2: Regular Day */}
+              {/* Moderate Day */}
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-amber-400 text-sm">👍 ОБЫЧНЫЙ ДЕНЬ (+12 баллов)</span>
-                  <span className="text-xs font-mono font-bold bg-amber-500 text-black px-2 py-0.5 rounded">Желтый день</span>
+                  <span className="font-bold text-amber-400 text-sm">👍 ХОРОШИЙ ДЕНЬ (DQS +10)</span>
+                  <span className="text-xs font-mono font-bold bg-amber-500 text-black px-2 py-0.5 rounded">Желтая зона</span>
                 </div>
                 <div className="text-xs text-slate-300 space-y-1 leading-relaxed">
-                  <p><b>Завтрак:</b> Овсянка на молоке с маслом и мёдом, 2 яйца с майонезом, кофе</p>
-                  <p><b>Обед:</b> Свинина с имбирём, картофель по-деревенски, салат, яблоко, кофе</p>
-                  <p><b>Ужин:</b> Куриное бедро, картошка, зеленый горошек, масло</p>
+                  <p><b>Завтрак:</b> Омлет из 2 яиц с сыром 15г и белым хлебом, кофе без сахара</p>
+                  <p><b>Обед:</b> Куриное филе с белым рисом, свежий огурец</p>
+                  <p><b>Ужин:</b> Запеченная рыба с картофельным пюре и маслом, полоска шоколада 30г</p>
                 </div>
               </div>
 
-              {/* Day 3: Ultra Processed Day */}
+              {/* Red Day */}
               <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-rose-400 text-sm">⚠️ ДЕНЬ С УЛЬТРА-ОБРАБОТКОЙ (-4 балла)</span>
-                  <span className="text-xs font-mono font-bold bg-rose-500 text-black px-2 py-0.5 rounded">Красный день</span>
+                  <span className="font-bold text-rose-400 text-sm">⚠️ ДЕНЬ ДЛЯ АНАЛИЗА (DQS -2)</span>
+                  <span className="text-xs font-mono font-bold bg-rose-500 text-black px-2 py-0.5 rounded">Красная зона</span>
                 </div>
                 <div className="text-xs text-slate-300 space-y-1 leading-relaxed">
-                  <p><b>Завтрак:</b> Каша 4 злака (не ЦЗ), 2 яйца, Чай с сахаром 5г (-2б)</p>
-                  <p><b>Обед:</b> 2 куска пиццы (-4б), Сок пакетный 200мл (-2б), Запеканка с сахаром (-2б)</p>
-                  <p><b>Ужин:</b> Хумус, Бурый рис, Свекольная икра с загустителями (-2б)</p>
+                  <p><b>Завтрак:</b> Сосиски с макаронами В/С, сладкий латте с сиропом</p>
+                  <p><b>Обед:</b> Картофель фри с наггетсами во фритюре и колой</p>
+                  <p><b>Ужин:</b> Пицца покупная с колбасой, бокал пива</p>
                 </div>
               </div>
             </div>
@@ -362,25 +449,25 @@ export const DQSGuideView: React.FC = () => {
             <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-center space-y-1">
               <div className="text-2xl font-black font-mono text-emerald-400">+15 и выше</div>
               <div className="text-xs font-bold text-slate-100">Отличный день</div>
-              <p className="text-[11px] text-slate-400">Идеальный баланс и высокое разнообразие</p>
+              <p className="text-[11px] text-slate-400">Превосходный баланс и высокое качество продуктов</p>
             </div>
 
             <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-center space-y-1">
               <div className="text-2xl font-black font-mono text-amber-400">+8 ... +14</div>
               <div className="text-xs font-bold text-slate-100">Хороший день</div>
-              <p className="text-[11px] text-slate-400">Нормальный рабочий рацион</p>
+              <p className="text-[11px] text-slate-400">Здоровый рабочий рацион с умереными сладостями</p>
             </div>
 
             <div className="bg-sky-500/10 border border-sky-500/30 p-4 rounded-xl text-center space-y-1">
               <div className="text-2xl font-black font-mono text-sky-400">+3 ... +7</div>
               <div className="text-xs font-bold text-slate-100">Средний день</div>
-              <p className="text-[11px] text-slate-400">Есть небольшие огрехи в рационе</p>
+              <p className="text-[11px] text-slate-400">Есть потенциал для улучшения рациона</p>
             </div>
 
             <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl text-center space-y-1">
               <div className="text-2xl font-black font-mono text-rose-400">Ниже +3</div>
               <div className="text-xs font-bold text-slate-100">День для анализа</div>
-              <p className="text-[11px] text-slate-400">Преобладание сладостей или обработанной еды</p>
+              <p className="text-[11px] text-slate-400">Преобладание ультра-обработанных продуктов</p>
             </div>
           </div>
         </div>

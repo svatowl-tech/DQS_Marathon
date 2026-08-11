@@ -35,6 +35,7 @@ import {
   formatDateRu,
   getCategoryPoints,
   getDayOfWeekRu,
+  isHealthyCategory,
 } from '../utils/dqsEngine';
 import { getFormattedLocalDate, parseLocalDate } from '../utils/timeZoneService';
 import { compressImage } from '../utils/imageCompressor';
@@ -165,8 +166,8 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
     });
   };
 
-  const positiveCats = DQS_CATEGORIES.filter((c) => c.group === 'positive');
-  const negativeCats = DQS_CATEGORIES.filter((c) => c.group === 'negative');
+  const positiveCats = DQS_CATEGORIES.filter((c) => c.group === 'positive' || c.group === 'limited');
+  const negativeCats = DQS_CATEGORIES.filter((c) => c.group === 'neutral' || c.group === 'negative');
 
   const getScoreBadge = (score: number) => {
     if (score >= 18) {
@@ -181,6 +182,13 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
         label: 'ЖЕЛТЫЙ ДЕНЬ (Хорошо)',
         bg: 'bg-amber-500 text-white border-amber-600',
         sub: 'Нормальный баланс рациона',
+      };
+    }
+    if (score >= -2) {
+      return {
+        label: 'СЕРЫЙ ДЕНЬ (Фокус на баланс)',
+        bg: 'bg-zinc-600 text-white border-zinc-700',
+        sub: 'Добавьте больше овощей, фруктов или цельного белка',
       };
     }
     return {
@@ -368,11 +376,11 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
               <h2 className="font-bold text-slate-100 text-base">
-                Здоровые категории (Положительные баллы)
+                Здоровые и нейтральные категории (Плюс / 0 баллов)
               </h2>
             </div>
             <span className="text-xs text-slate-400 font-mono">
-              3+ вида в категории = Разнообразие (+2 б.)
+              3+ вида в категории = Разнообразие (+1 б.)
             </span>
           </div>
 
@@ -380,7 +388,7 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
             {positiveCats.map((cat) => {
               const count = log.servings[cat.id] || 0;
               const hasDiv = log.diversity[cat.id] || false;
-              const points = getCategoryPoints(cat.id, count) + (hasDiv && count >= 1 ? 2 : 0);
+              const points = getCategoryPoints(cat.id, count) + (isHealthyCategory(cat.id) && hasDiv && count >= 1 ? 1 : 0);
 
               return (
                 <div
@@ -430,15 +438,19 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
                     </div>
 
                     {/* Diversity Bonus Checkbox */}
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-300 select-none">
-                      <input
-                        type="checkbox"
-                        checked={hasDiv}
-                        onChange={() => handleDiversityToggle(cat.id)}
-                        className="w-4 h-4 text-emerald-500 bg-white/5 border-white/20 rounded focus:ring-emerald-500 accent-emerald-500"
-                      />
-                      <span>3+ различных (+2б)</span>
-                    </label>
+                    {cat.id !== 'refined_grains' ? (
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-300 select-none">
+                        <input
+                          type="checkbox"
+                          checked={hasDiv}
+                          onChange={() => handleDiversityToggle(cat.id)}
+                          className="w-4 h-4 text-emerald-500 bg-white/5 border-white/20 rounded focus:ring-emerald-500 accent-emerald-500"
+                        />
+                        <span>3+ различных (+2б)</span>
+                      </label>
+                    ) : (
+                      <div className="text-[11px] text-zinc-500 italic font-medium">Нейтральная категория</div>
+                    )}
                   </div>
                 </div>
               );

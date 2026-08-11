@@ -109,10 +109,45 @@ export function calculateAchievements(
       progressText: `${Math.min(daysInMarathon, 100)} / 100 дней`,
       badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     },
+    {
+      id: 'time_180d',
+      title: 'Полгода в марафоне',
+      description: '6 месяцев железной дисциплины и правильного питания',
+      icon: '🥇',
+      category: 'time',
+      type: 'permanent',
+      tier: 6,
+      progressText: `${Math.min(daysInMarathon, 180)} / 180 дней`,
+      badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    },
+    {
+      id: 'time_365d',
+      title: 'Год легендарного DQS',
+      description: 'Целый год преданности здоровью, форме и идеальному рациону',
+      icon: '👑',
+      category: 'time',
+      type: 'permanent',
+      tier: 7,
+      progressText: `${Math.min(daysInMarathon, 365)} / 365 дней`,
+      badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+    },
   ];
 
   const evaluatedTimeAchievements: AchievementItem[] = timeTiers.map((t) => {
-    const requiredDays = t.tier === 1 ? 7 : t.tier === 2 ? 14 : t.tier === 3 ? 30 : t.tier === 4 ? 60 : 100;
+    const requiredDays =
+      t.tier === 1
+        ? 7
+        : t.tier === 2
+        ? 14
+        : t.tier === 3
+        ? 30
+        : t.tier === 4
+        ? 60
+        : t.tier === 5
+        ? 100
+        : t.tier === 6
+        ? 180
+        : 365;
     const isUnlocked = daysInMarathon >= requiredDays;
     return {
       ...t,
@@ -145,18 +180,85 @@ export function calculateAchievements(
     ? Math.max(...sortedLogs.map((l) => l.servings.vegetables || 0))
     : 0;
 
+  const maxFruitBerryServings = sortedLogs.length > 0
+    ? Math.max(...sortedLogs.map((l) => l.servings.fruits || 0))
+    : 0;
+
+  const maxProteinServings = sortedLogs.length > 0
+    ? Math.max(
+        ...sortedLogs.map(
+          (l) =>
+            (l.servings.meat || 0) +
+            (l.servings.dairy || 0) +
+            (l.servings.cheese || 0) +
+            (l.servings.legumes || 0) +
+            ((l.servings as any).lean_proteins || 0)
+        )
+      )
+    : 0;
+
+  let maxNoSweetsStreak = 0;
+  let currentSweetsStreak = 0;
+  sortedLogs.forEach((l) => {
+    const sweets = (l.servings.sweets || 0) + (l.servings.sugary_drinks || 0);
+    if (sweets === 0 && l.calculatedScore > 0) {
+      currentSweetsStreak++;
+      if (currentSweetsStreak > maxNoSweetsStreak) maxNoSweetsStreak = currentSweetsStreak;
+    } else {
+      currentSweetsStreak = 0;
+    }
+  });
+
+  const totalFoodPhotos = sortedLogs.reduce(
+    (acc, l) => acc + (l.photos?.length || 0) + (l.meals?.length || 0),
+    0
+  );
+  const diversityDaysCount = sortedLogs.filter(
+    (l) => l.diversity && Object.values(l.diversity).some(Boolean)
+  ).length;
+  const totalWorkouts = sortedLogs.filter((l) => l.workout?.done).length;
+
+  const stepsList = sortedLogs.map((l) => l.steps || 0);
+  const maxSteps = stepsList.length > 0 ? Math.max(...stepsList) : 0;
+  const daysWith10kSteps = stepsList.filter((s) => s >= 10000).length;
+
+  let maxWeightStreak = 0;
+  let currWeightStreak = 0;
+  sortedLogs.forEach((l) => {
+    if (typeof l.weight === 'number' && l.weight > 0) {
+      currWeightStreak++;
+      if (currWeightStreak > maxWeightStreak) maxWeightStreak = currWeightStreak;
+    } else {
+      currWeightStreak = 0;
+    }
+  });
+
   const zeroJunkDays = sortedLogs.filter((l) => {
     const junk =
-      (l.servings.refined_grains || 0) +
+      (l.servings.other_grains || (l.servings as any).refined_grains || 0) +
       (l.servings.sweets || 0) +
-      (l.servings.processed_meats || 0) +
-      (l.servings.sugary_drinks_alcohol || 0);
+      (l.servings.sugary_drinks || 0) +
+      (l.servings.alcohol || 0) +
+      (l.servings.fried_food || 0) +
+      (l.servings.processed_meat || (l.servings as any).processed_meats || 0) +
+      ((l.servings as any).sugary_drinks_alcohol || 0);
     return junk === 0 && l.calculatedScore > 0;
   }).length;
 
   const waterMetDays = sortedLogs.filter((l) => (l.trackers?.waterGlass || 0) >= 8).length;
 
   const permanentNutrition: AchievementItem[] = [
+    {
+      id: 'nut_first_log',
+      title: 'Первый шаг к цели',
+      description: 'Заполнен самый первый дневник питания в DQS',
+      icon: '🚀',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: sortedLogs.length >= 1,
+      progressText: `${Math.min(sortedLogs.length, 1)} / 1 дневник`,
+      badgeColor: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+    },
     {
       id: 'nut_green_first',
       title: 'Первый зелёный день',
@@ -180,6 +282,17 @@ export function calculateAchievements(
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     },
     {
+      id: 'nut_green_streak7',
+      title: 'Зелёный марафон (7 дней)',
+      description: 'Целая неделя подряд с DQS в зелёной зоне',
+      icon: '🔥',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: maxGreenStreak >= 7,
+      progressText: `Серия: ${maxGreenStreak} / 7 дн.`,
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    },
+    {
       id: 'nut_green_10d',
       title: '10 дней в зелёной зоне',
       description: 'Суммарно 10 дней отличного качества рациона',
@@ -188,6 +301,17 @@ export function calculateAchievements(
       type: 'permanent',
       unlocked: greenDaysCount >= 10,
       progressText: `${Math.min(greenDaysCount, 10)} / 10 дн.`,
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    },
+    {
+      id: 'nut_green_30d',
+      title: 'Мастер рациона (30 зелёных дней)',
+      description: 'Суммарно 30 дней с зелёным качеством DQS',
+      icon: '🌲',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: greenDaysCount >= 30,
+      progressText: `${Math.min(greenDaysCount, 30)} / 30 дн.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     },
     {
@@ -213,6 +337,39 @@ export function calculateAchievements(
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     },
     {
+      id: 'nut_berry_guru',
+      title: 'Ягодный & Фруктовый Гуру',
+      description: 'Съедено 3+ порций ягод или фруктов за один день',
+      icon: '🍓',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: maxFruitBerryServings >= 3,
+      progressText: `Макс: ${maxFruitBerryServings} / 3 порц.`,
+      badgeColor: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
+    },
+    {
+      id: 'nut_protein_pro',
+      title: 'Белковый баланс',
+      description: '5+ порций полноценного белка (птица, рыба, яйца, бобовые) за день',
+      icon: '🥩',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: maxProteinServings >= 5,
+      progressText: `Макс: ${maxProteinServings} / 5 порц.`,
+      badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+    },
+    {
+      id: 'nut_no_sweets_3d',
+      title: 'Сахарный детокс',
+      description: '3 дня подряд без сладостей и сладких напитков',
+      icon: '🍯',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: maxNoSweetsStreak >= 3,
+      progressText: `Серия: ${maxNoSweetsStreak} / 3 дн.`,
+      badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    },
+    {
       id: 'nut_zero_junk',
       title: 'Чистый рацион',
       description: 'Полное отсутствие рафинированных и вредных продуктов за день',
@@ -224,6 +381,28 @@ export function calculateAchievements(
       badgeColor: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
     },
     {
+      id: 'nut_food_photos_10',
+      title: 'Фото-фудблогер (10+ фото)',
+      description: 'Загружено 10 и более фотографий ваших приёмов пищи',
+      icon: '📸',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: totalFoodPhotos >= 10,
+      progressText: `${totalFoodPhotos} / 10 фото`,
+      badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    },
+    {
+      id: 'nut_diversity_master',
+      title: 'Радуга на тарелке',
+      description: '10 дней активного отслеживания разнообразия продуктов',
+      icon: '🎨',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: diversityDaysCount >= 10,
+      progressText: `${diversityDaysCount} / 10 дней`,
+      badgeColor: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+    },
+    {
       id: 'nut_water_master',
       title: 'Водная привычка',
       description: '10 дней выполнения нормы гидратации (8+ стаканов)',
@@ -233,6 +412,61 @@ export function calculateAchievements(
       unlocked: waterMetDays >= 10,
       progressText: `${waterMetDays} / 10 дней`,
       badgeColor: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+    },
+    {
+      id: 'nut_water_20d',
+      title: 'Океан гидратации (20 дней)',
+      description: '20 дней выпивалось по 8+ стаканов чистой воды',
+      icon: '🌊',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: waterMetDays >= 20,
+      progressText: `${waterMetDays} / 20 дней`,
+      badgeColor: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+    },
+    {
+      id: 'sport_first',
+      title: 'Заряд энергии',
+      description: 'Отмечена первая спортивная тренировка в дневнике',
+      icon: '🏋️‍♂️',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: totalWorkouts >= 1,
+      progressText: `${totalWorkouts} / 1 тр.`,
+      badgeColor: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    },
+    {
+      id: 'sport_10_workouts',
+      title: 'Железный спортсмен',
+      description: 'Выполнено 10 и более тренировок',
+      icon: '⚡',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: totalWorkouts >= 10,
+      progressText: `${totalWorkouts} / 10 тр.`,
+      badgeColor: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    },
+    {
+      id: 'sport_steps_10k',
+      title: 'Шаговый марафон (10k)',
+      description: 'Пройдено 10 000+ шагов за один день',
+      icon: '👟',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: maxSteps >= 10000,
+      progressText: `Рекорд: ${maxSteps.toLocaleString()} шагов`,
+      badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    },
+    {
+      id: 'sport_steps_7d_10k',
+      title: 'Победитель дивана',
+      description: '5 дней с нормой 10 000+ шагов',
+      icon: '🏃‍♂️',
+      category: 'nutrition',
+      type: 'permanent',
+      unlocked: daysWith10kSteps >= 5,
+      progressText: `${daysWith10kSteps} / 5 дней`,
+      badgeColor: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
     },
   ];
 
@@ -267,10 +501,32 @@ export function calculateAchievements(
 
   const permanentWeightBody: AchievementItem[] = [
     {
+      id: 'body_first_weight',
+      title: 'Точка отсчёта',
+      description: 'Зафиксирован первый замер веса в системе',
+      icon: '⚖️',
+      category: 'weight_body',
+      type: 'permanent',
+      unlocked: validWeights.length >= 1,
+      progressText: `${validWeights.length} / 1 замер`,
+      badgeColor: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+    },
+    {
+      id: 'body_weight_streak7',
+      title: 'Дисциплина взвешиваний',
+      description: '7 дней подряд ежедневной фиксации утреннего веса',
+      icon: '📅',
+      category: 'weight_body',
+      type: 'permanent',
+      unlocked: maxWeightStreak >= 7,
+      progressText: `Серия: ${maxWeightStreak} / 7 дн.`,
+      badgeColor: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+    },
+    {
       id: 'body_w_minus1',
       title: 'Старт дан (-1 кг)',
       description: 'Сброшен 1 килограмм от начального веса',
-      icon: '⚖️',
+      icon: '📉',
       category: 'weight_body',
       type: 'permanent',
       unlocked: totalWeightLost >= 1,
@@ -300,6 +556,17 @@ export function calculateAchievements(
       badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     },
     {
+      id: 'body_w_minus7',
+      title: 'Мощный результат (-7 кг)',
+      description: 'Сброшено 7 килограммов от начального веса',
+      icon: '🚀',
+      category: 'weight_body',
+      type: 'permanent',
+      unlocked: totalWeightLost >= 7,
+      progressText: `${totalWeightLost} / 7 кг`,
+      badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    },
+    {
       id: 'body_w_minus10',
       title: 'Трансформация (-10 кг)',
       description: '10 сброшенных килограммов жировой массы',
@@ -309,6 +576,17 @@ export function calculateAchievements(
       unlocked: totalWeightLost >= 10,
       progressText: `${totalWeightLost} / 10 кг`,
       badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    },
+    {
+      id: 'body_target_reached',
+      title: 'Цель достигнута!',
+      description: 'Текущий вес равен или меньше вашей целевой планки',
+      icon: '🎯',
+      category: 'weight_body',
+      type: 'permanent',
+      unlocked: settings?.targetWeight ? currentWeight <= settings.targetWeight && validWeights.length > 0 : false,
+      progressText: `Вес: ${currentWeight} кг (Цель: ${settings?.targetWeight || '—'} кг)`,
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     },
     {
       id: 'body_m_waist2',
@@ -342,6 +620,17 @@ export function calculateAchievements(
       unlocked: totalCmLost >= 10,
       progressText: `${totalCmLost} / 10 см`,
       badgeColor: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+    },
+    {
+      id: 'body_m_total15',
+      title: 'Минус 15 см в объемах',
+      description: 'Впечатляющий минус 15 см по всем замеряемым параметрам',
+      icon: '💃',
+      category: 'weight_body',
+      type: 'permanent',
+      unlocked: totalCmLost >= 15,
+      progressText: `${totalCmLost} / 15 см`,
+      badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
     },
   ];
 
@@ -381,6 +670,24 @@ export function calculateAchievements(
   const weekWorkouts = weekLogs.filter((l) => l?.workout?.done).length;
   const weekWaterDays = weekLogs.filter((l) => (l?.trackers?.waterGlass || 0) >= 8).length;
   const weekDiversityDays = weekLogs.filter((l) => l && Object.values(l.diversity || {}).some(Boolean)).length;
+  const weekPhotoDays = weekLogs.filter(
+    (l) => l && ((l.photos?.length || 0) > 0 || (l.meals?.length || 0) > 0)
+  ).length;
+  const weekTotalSteps = weekLogs.reduce((acc, l) => acc + (l?.steps || 0), 0);
+
+  const weekJunkCount = weekLogs.reduce((acc, l) => {
+    if (!l) return acc;
+    return (
+      acc +
+      (l.servings.other_grains || (l.servings as any).refined_grains || 0) +
+      (l.servings.sweets || 0) +
+      (l.servings.sugary_drinks || 0) +
+      (l.servings.alcohol || 0) +
+      (l.servings.fried_food || 0) +
+      (l.servings.processed_meat || (l.servings as any).processed_meats || 0) +
+      ((l.servings as any).sugary_drinks_alcohol || 0)
+    );
+  }, 0);
 
   // Weight change for week
   const weekValidWeights = weekLogs
@@ -484,6 +791,50 @@ export function calculateAchievements(
       unlocked: weekDiversityDays >= 3,
       progressText: `${weekDiversityDays} / 3 дня`,
       badgeColor: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+    },
+    {
+      id: 'week_photos_4d',
+      title: 'Фотохроника недели',
+      description: 'Фотографии блюд загружались 4+ дня за эту неделю',
+      icon: '📷',
+      category: 'nutrition',
+      type: 'weekly',
+      unlocked: weekPhotoDays >= 4,
+      progressText: `${weekPhotoDays} / 4 дней`,
+      badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    },
+    {
+      id: 'week_steps_35k',
+      title: '35 000 шагов за неделю',
+      description: 'Суммарно пройдено более 35 000 шагов за 7 дней',
+      icon: '🚶',
+      category: 'nutrition',
+      type: 'weekly',
+      unlocked: weekTotalSteps >= 35000,
+      progressText: `${weekTotalSteps.toLocaleString()} / 35 000 шагов`,
+      badgeColor: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    },
+    {
+      id: 'week_no_junk',
+      title: 'Неделя без фастфуда',
+      description: 'За всю неделю 0 порций жареного, сладостей и вредностей',
+      icon: '🛑',
+      category: 'nutrition',
+      type: 'weekly',
+      unlocked: weekJunkCount === 0 && weekLogs.filter(Boolean).length >= 5,
+      progressText: `Вредности: ${weekJunkCount} порц.`,
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    },
+    {
+      id: 'week_report_done',
+      title: 'Воскресный супер-отчёт',
+      description: 'Заполнен и сохранен недельный воскресный отчёт',
+      icon: '📋',
+      category: 'nutrition',
+      type: 'weekly',
+      unlocked: !!matchedReport,
+      progressText: matchedReport ? 'Отчёт сдан!' : 'Не сдан',
+      badgeColor: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
     },
   ];
 

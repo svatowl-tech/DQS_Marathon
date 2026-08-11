@@ -3,6 +3,9 @@ import {
   calculateDailyDQS,
   getInitialDiversity,
   getInitialServings,
+  migrateDailyLogEntry,
+  migrateAllLogs,
+  migrateUserSettings,
 } from './dqsEngine';
 import { logger } from './logger';
 
@@ -263,7 +266,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_oatmeal',
       title: '🥣 Овсянка + Ягоды + Орехи',
       mealType: 'breakfast',
-      servings: { whole_grains: 1, fruits: 1, nuts_seeds: 1 },
+      servings: { whole_grains: 1, fruits: 1, nuts: 1 },
       hungerBefore: 6,
       fullnessAfter: 7,
     },
@@ -271,7 +274,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_lunch_standard',
       title: '🥗 Курица + Гречка + Салат',
       mealType: 'lunch',
-      servings: { lean_proteins: 1, whole_grains: 1, vegetables: 2, oils_fats: 1 },
+      servings: { meat: 1, whole_grains: 1, vegetables: 2, oils: 1 },
       hungerBefore: 7,
       fullnessAfter: 8,
     },
@@ -279,7 +282,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_fish_dinner',
       title: '🐟 Рыба + Овощи гриль',
       mealType: 'dinner',
-      servings: { lean_proteins: 1, vegetables: 2, oils_fats: 1 },
+      servings: { meat: 1, vegetables: 2, oils: 1 },
       hungerBefore: 6,
       fullnessAfter: 7,
     },
@@ -287,7 +290,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       id: 'fav_apple_snack',
       title: '🍏 Яблоко + Миндаль',
       mealType: 'snack',
-      servings: { fruits: 1, nuts_seeds: 1 },
+      servings: { fruits: 1, nuts: 1 },
       hungerBefore: 4,
       fullnessAfter: 6,
     },
@@ -322,8 +325,9 @@ export function loadSettings(): UserSettings {
           favoriteMeals: Array.isArray(parsed.favoriteMeals) ? parsed.favoriteMeals : DEFAULT_SETTINGS.favoriteMeals,
           taskRules: Array.isArray(parsed.taskRules) ? parsed.taskRules : DEFAULT_SETTINGS.taskRules,
         };
-        memorySettingsCache = loaded;
-        return loaded;
+        const migrated = migrateUserSettings(loaded);
+        memorySettingsCache = migrated;
+        return migrated;
       }
     }
   } catch (e) {
@@ -334,14 +338,15 @@ export function loadSettings(): UserSettings {
 }
 
 export function saveSettings(settings: UserSettings): void {
-  memorySettingsCache = settings;
+  const migrated = migrateUserSettings(settings);
+  memorySettingsCache = migrated;
   try {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(migrated));
   } catch (e) {
     console.warn('LocalStorage full or restricted on saveSettings', e);
   }
   // Also save asynchronously to IndexedDB
-  idbSet('settings', settings, 'userSettings');
+  idbSet('settings', migrated, 'userSettings');
 }
 
 // DAILY LOGS
@@ -354,20 +359,7 @@ export function loadDailyLogs(): DailyLogEntry[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const initialServings = getInitialServings();
-        const initialDiversity = getInitialDiversity();
-
-        const loaded = parsed
-          .filter((item) => item && typeof item === 'object' && item.date)
-          .map((item: DailyLogEntry) => ({
-            ...item,
-            servings: { ...initialServings, ...(item.servings || {}) },
-            diversity: { ...initialDiversity, ...(item.diversity || {}) },
-            workout: item.workout || { done: false, description: '' },
-            journal: item.journal || { hungerBefore: 5, fullnessAfter: 7, mood: 'great', note: '' },
-            trackers: item.trackers || { waterGlass: 0, coffeeCups: 0, sleepHours: 7 },
-            photos: Array.isArray(item.photos) ? item.photos : [],
-          }));
+        const loaded = migrateAllLogs(parsed);
         memoryLogsCache = loaded;
         return loaded;
       }
@@ -506,8 +498,8 @@ export async function hydrateFromIndexedDB(): Promise<{
       }
     }
 
-    const mergedLogs = Array.from(logMap.values()).sort((a, b) => b.date.localeCompare(a.date));
-    const finalSettings = idbSettings || lsSettings || memorySettingsCache || DEFAULT_SETTINGS;
+    const mergedLogs = migrateAllLogs(Array.from(logMap.values())).sort((a, b) => b.date.localeCompare(a.date));
+    const finalSettings = migrateUserSettings(idbSettings || lsSettings || memorySettingsCache || DEFAULT_SETTINGS);
 
     const reportMap = new Map<string, WeeklySundayReport>();
     for (const r of lsReports) { if (r && r.weekEndDate) reportMap.set(r.weekEndDate, r); }
@@ -616,10 +608,10 @@ export function importAllDataFromJson(jsonStr: string): boolean {
     if (!parsed || typeof parsed !== 'object') return false;
 
     if (parsed.settings && typeof parsed.settings === 'object') {
-      saveSettings(parsed.settings);
+      saveSettings(migrateUserSettings(parsed.settings));
     }
     if (Array.isArray(parsed.logs)) {
-      saveDailyLogs(parsed.logs);
+      saveDailyLogs(migrateAllLogs(parsed.logs));
     }
     if (Array.isArray(parsed.reports)) {
       saveSundayReports(parsed.reports);

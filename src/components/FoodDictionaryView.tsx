@@ -220,7 +220,7 @@ export const FoodDictionaryView: React.FC<FoodDictionaryViewProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
+    <div className="w-full max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-950 via-zinc-900 to-zinc-900 border border-emerald-500/30 rounded-2xl p-5 sm:p-7 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />

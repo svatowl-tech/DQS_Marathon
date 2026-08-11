@@ -42,19 +42,21 @@ export const AchievementsBadgeList: React.FC<AchievementsBadgeListProps> = ({
             {permanentAchievements.map((item) => (
               <div
                 key={item.id}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-sm ${
+                className={`flex items-center gap-1.5 ${
+                  compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+                } rounded-xl border font-semibold transition-all shadow-sm ${
                   item.unlocked
                     ? `${item.badgeColor} shadow-emerald-500/10`
                     : 'bg-zinc-900/60 text-zinc-500 border-zinc-800 opacity-60'
                 }`}
                 title={item.description}
               >
-                <span className="text-sm">{item.icon}</span>
+                <span className={compact ? 'text-xs' : 'text-sm'}>{item.icon}</span>
                 <span>{item.title}</span>
                 {item.unlocked ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 ml-0.5 shrink-0" />
+                  <CheckCircle2 className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-emerald-400 ml-0.5 shrink-0`} />
                 ) : (
-                  <Lock className="w-3 h-3 text-zinc-600 ml-0.5 shrink-0" />
+                  <Lock className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} text-zinc-600 ml-0.5 shrink-0`} />
                 )}
               </div>
             ))}

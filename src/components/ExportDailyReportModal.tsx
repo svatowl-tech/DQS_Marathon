@@ -74,9 +74,21 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(cardRef.current, {
+      const node = cardRef.current;
+      const width = node.scrollWidth || node.offsetWidth || 480;
+      const height = node.scrollHeight || node.offsetHeight || 600;
+
+      const dataUrl = await toPng(node, {
         cacheBust: true,
         pixelRatio: 2, // High resolution for crisp export
+        width: width,
+        height: height,
+        style: {
+          height: `${height}px`,
+          maxHeight: 'none',
+          overflow: 'visible',
+          transform: 'none',
+        },
       });
 
       const link = document.createElement('a');
@@ -95,7 +107,22 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 });
+      const node = cardRef.current;
+      const width = node.scrollWidth || node.offsetWidth || 480;
+      const height = node.scrollHeight || node.offsetHeight || 600;
+
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        width: width,
+        height: height,
+        style: {
+          height: `${height}px`,
+          maxHeight: 'none',
+          overflow: 'visible',
+          transform: 'none',
+        },
+      });
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `dqs-report-${log.date}.png`, { type: 'image/png' });
@@ -122,18 +149,18 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
   const getThemeBg = () => {
     switch (cardTheme) {
       case 'obsidian':
-        return 'bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-zinc-100 border-zinc-800';
+        return 'bg-[#0e0e11] bg-gradient-to-b from-[#18181c] via-[#131317] to-[#0c0c0f] text-zinc-100 border-zinc-700/40';
       case 'sunset':
-        return 'bg-gradient-to-br from-slate-950 via-amber-950/40 to-zinc-950 text-zinc-100 border-amber-900/40';
+        return 'bg-[#180d09] bg-gradient-to-b from-[#2a1610] via-[#20110b] to-[#120805] text-zinc-100 border-amber-600/30';
       case 'emerald':
       default:
-        return 'bg-gradient-to-br from-[#0c1813] via-[#10221a] to-[#08100d] text-zinc-100 border-emerald-900/30';
+        return 'bg-[#091a13] bg-gradient-to-b from-[#0f2e21] via-[#0d261b] to-[#081811] text-zinc-100 border-emerald-500/30';
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative my-auto max-h-[92vh] overflow-y-auto">
+      <div className="bg-[#121215] border border-white/[0.08] rounded-2xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 relative my-auto max-h-[92vh] overflow-y-auto">
         {/* Top bar */}
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <div className="flex items-center gap-2.5">
@@ -228,15 +255,35 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
         </div>
 
         {/* Card Canvas Container to capture */}
-        <div className="flex justify-center max-h-[55vh] overflow-y-auto p-2 bg-black/40 rounded-xl border border-white/5 no-scrollbar">
+        <div className="flex justify-center max-h-[62vh] overflow-y-auto p-2 sm:p-4 bg-black/50 rounded-2xl border border-white/5 no-scrollbar">
           <div
             ref={cardRef}
-            className={`w-full max-w-md p-5 sm:p-6 rounded-3xl border shadow-2xl relative flex flex-col justify-between ${getThemeBg()} ${
+            className={`w-full max-w-lg sm:max-w-xl p-5 sm:p-6 rounded-3xl border shadow-2xl relative flex flex-col justify-between shrink-0 h-auto overflow-hidden ${getThemeBg()} ${
               aspectRatio === 'story' ? 'min-h-[580px]' : 'min-h-[480px]'
             }`}
           >
+            {/* Ambient theme glow overlays */}
+            {cardTheme === 'emerald' && (
+              <>
+                <div className="absolute -top-24 -right-24 w-80 h-80 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-emerald-500/25 rounded-full blur-3xl pointer-events-none" />
+              </>
+            )}
+            {cardTheme === 'sunset' && (
+              <>
+                <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
+              </>
+            )}
+            {cardTheme === 'obsidian' && (
+              <>
+                <div className="absolute -top-24 -right-24 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+              </>
+            )}
+
             {/* Header branding */}
-            <div className="space-y-3 border-b border-white/10 pb-4">
+            <div className="space-y-3 border-b border-white/10 pb-4 relative z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 font-black text-xs">
@@ -294,7 +341,7 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
 
             {/* Meal Entries & Photos Grid */}
             {log.photos && log.photos.length > 0 && (
-              <div className="my-3 space-y-1.5">
+              <div className="my-3 space-y-1.5 relative z-10">
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                   🍽️ Приёмы пищи и фото ({log.photos.length}):
                 </span>
@@ -340,7 +387,7 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
             )}
 
             {/* Servings Breakdown */}
-            <div className="my-3 space-y-2">
+            <div className="my-3 space-y-2 relative z-10">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                 🥗 Порции полезных продуктов:
               </span>
@@ -377,7 +424,7 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
 
             {/* Workout Card if exists */}
             {log.workout.done && (
-              <div className="my-2 p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center gap-2.5">
+              <div className="my-2 p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center gap-2.5 relative z-10">
                 <Dumbbell className="w-4 h-4 text-orange-400 shrink-0" />
                 <div className="text-xs overflow-hidden">
                   <span className="font-bold text-orange-300 block">Тренировка выполнена</span>
@@ -389,7 +436,7 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
             )}
 
             {/* Body Metrics Grid */}
-            <div className="my-2 grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="my-2 grid grid-cols-3 gap-2 text-center text-xs relative z-10">
               {log.weight ? (
                 <div className="p-2 rounded-xl bg-white/[0.04] border border-white/5">
                   <span className="text-[9px] text-zinc-400 block">Вес</span>
@@ -412,20 +459,34 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
               ) : null}
             </div>
 
-            {/* Permanent Achievements on Daily Report */}
-            {achievementsData.unlockedPermanent.length > 0 && (
-              <div className="my-2 space-y-1">
+            {/* Daily Notes / Journal if present */}
+            {(log.journal?.note || log.notes) && (
+              <div className="my-2 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 space-y-1 relative z-10">
+                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider block">
+                  📝 Заметки дня:
+                </span>
+                <p className="text-[11px] text-zinc-200 leading-relaxed italic">
+                  "{log.journal?.note || log.notes}"
+                </p>
+              </div>
+            )}
+
+            {/* Permanent & Weekly Achievements on Daily Report */}
+            {(achievementsData.unlockedPermanent.length > 0 || achievementsData.unlockedWeekly.length > 0) && (
+              <div className="my-2 space-y-1 relative z-10">
                 <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider block">
-                  🏆 Достижения марафона:
+                  🏆 Достижения марафона ({achievementsData.unlockedPermanent.length + achievementsData.unlockedWeekly.length}):
                 </span>
                 <AchievementsBadgeList
                   permanentAchievements={achievementsData.unlockedPermanent}
+                  weeklyAchievements={achievementsData.unlockedWeekly}
+                  compact
                 />
               </div>
             )}
 
             {/* Footer Watermark */}
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-zinc-400">
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-zinc-400 relative z-10">
               <span className="font-semibold text-zinc-300">DQS Health & Nutrition</span>
               <span>Создано в трекере DQS</span>
             </div>

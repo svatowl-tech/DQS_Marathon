@@ -1,18 +1,31 @@
 export type CategoryId =
-  | 'vegetables'
   | 'fruits'
-  | 'nuts_seeds'
-  | 'whole_grains'
-  | 'lean_proteins'
+  | 'vegetables'
+  | 'greens'
+  | 'meat'
   | 'dairy'
+  | 'cheese'
+  | 'nuts'
+  | 'oils'
+  | 'whole_grains'
+  | 'legumes'
+  | 'potatoes'
+  | 'other_grains'
+  | 'sweets'
+  | 'sugary_drinks'
+  | 'alcohol'
+  | 'fried_food'
+  | 'processed_meat'
+  // Legacy aliases for backward compatibility in types
+  | 'nuts_seeds'
+  | 'lean_proteins'
   | 'oils_fats'
   | 'healthy_drinks'
   | 'refined_grains'
-  | 'sweets'
   | 'processed_meats'
   | 'sugary_drinks_alcohol';
 
-export type CategoryGroup = 'positive' | 'negative';
+export type CategoryGroup = 'positive' | 'limited' | 'neutral' | 'negative';
 
 export interface DQSCategoryInfo {
   id: CategoryId;
@@ -57,6 +70,15 @@ export interface DailyLogEntry {
   weight?: number; // kg
   steps?: number;
   measurements?: BodyMeasurements;
+  morningWeight?: number;
+  eveningWeight?: number;
+  waist?: number;
+  hips?: number;
+  chest?: number;
+  thigh?: number;
+  arm?: number;
+  notes?: string;
+  completedTasks?: Record<string, boolean>;
   workout: {
     done: boolean;
     description: string;
@@ -68,6 +90,7 @@ export interface DailyLogEntry {
   diversity: Record<CategoryId, boolean>; // 3+ different foods in category
   calculatedScore: number;
   photos: PhotoEntry[];
+  meals?: PhotoEntry[];
   journal: JournalEntry;
   trackers: OptionalTrackers;
 }
@@ -130,6 +153,15 @@ export interface UserSettings {
   isStarted?: boolean;
   targetWeight?: number;
   height?: number;
+  gender?: 'female' | 'male';
+  age?: number;
+  heightCm?: number;
+  weightKg?: number;
+  targetWeightKg?: number;
+  bodyFatPct?: number;
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active' | 'extreme';
+  metabolismGoal?: 'fat_loss' | 'maintenance' | 'muscle_gain';
+  deficitPct?: number;
   taskRules?: CustomTaskRule[];
   favoriteMeals?: FavoriteMealTemplate[];
   googleSheetId?: string;
@@ -138,4 +170,16 @@ export interface UserSettings {
   lastCloudSyncTime?: string;
 }
 
-export type ActiveTab = 'home' | 'log' | 'dictionary' | 'table' | 'weekly_report' | 'guide' | 'charts' | 'settings' | 'print';
+export type ActiveTab =
+  | 'home'
+  | 'log'
+  | 'dictionary'
+  | 'table'
+  | 'weigh_in'
+  | 'metabolism'
+  | 'weight_loss_analysis'
+  | 'weekly_report'
+  | 'guide'
+  | 'charts'
+  | 'settings'
+  | 'print';

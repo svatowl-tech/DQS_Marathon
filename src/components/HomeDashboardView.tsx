@@ -55,7 +55,6 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
   onOpenQuickMealModal,
   onOpenStartWizard,
 }) => {
-  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
   const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
@@ -75,11 +74,28 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
     rule.daysOfWeek.includes(dayOfWeekIndex)
   );
 
+  const completedTasks = currentLog.completedTasks || {};
+
   const toggleTask = (taskId: string) => {
-    setCompletedTasks((prev) => ({
-      ...prev,
-      [taskId]: !prev[taskId],
-    }));
+    const updated = {
+      ...completedTasks,
+      [taskId]: !completedTasks[taskId],
+    };
+    onUpdateLog({
+      ...currentLog,
+      completedTasks: updated,
+    });
+  };
+
+  const markTaskDone = (taskId: string) => {
+    const updated = {
+      ...completedTasks,
+      [taskId]: true,
+    };
+    onUpdateLog({
+      ...currentLog,
+      completedTasks: updated,
+    });
   };
 
   const handleSaveMetrics = () => {
@@ -99,7 +115,10 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
   if (score < 8 && score >= 3) {
     scoreBadgeStyle = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
     scoreTitle = 'Желтый день (Нормальный)';
-  } else if (score < 3) {
+  } else if (score < 3 && score >= -2) {
+    scoreBadgeStyle = 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+    scoreTitle = 'Серый день (В процессе)';
+  } else if (score < -2) {
     scoreBadgeStyle = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
     scoreTitle = 'Красный день (Разбор)';
   }
@@ -112,9 +131,13 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
       : 0;
 
   const achievementsData = calculateAchievements(allLogs, userSettings, reports);
+  const allUnlockedAchievements = [
+    ...achievementsData.unlockedPermanent,
+    ...achievementsData.unlockedWeekly,
+  ];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 w-full max-w-[1800px] mx-auto pb-12">
       {/* Start Hero Card Banner if app is not started yet */}
       {(!userSettings.isStarted || !userSettings.userName) && (
         <div className="bg-gradient-to-r from-emerald-950/80 via-[#121215] to-[#121215] border-2 border-emerald-500/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden space-y-4">
@@ -221,6 +244,66 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Unlocked Achievements Section under greeting */}
+        <div className="mt-4 pt-4 border-t border-white/[0.08] relative z-10 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-extrabold uppercase tracking-wider text-amber-300">
+                Ваши полученные ачивки ({allUnlockedAchievements.length})
+              </span>
+              <span className="text-[11px] text-zinc-400 hidden sm:inline">
+                • Открытые награды за достижения и дисциплину
+              </span>
+            </div>
+
+            <button
+              onClick={() => setIsAchievementsModalOpen(true)}
+              className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <span>Все ачивки →</span>
+            </button>
+          </div>
+
+          {allUnlockedAchievements.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {allUnlockedAchievements.slice(-3).map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setIsAchievementsModalOpen(true)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-95 ${item.badgeColor} shadow-md shadow-black/20`}
+                  title={`${item.title}: ${item.description}`}
+                >
+                  <span className="text-base leading-none">{item.icon}</span>
+                  <span className="text-zinc-100">{item.title}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-0.5" />
+                </div>
+              ))}
+              {allUnlockedAchievements.length > 3 && (
+                <button
+                  onClick={() => setIsAchievementsModalOpen(true)}
+                  className="px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer"
+                >
+                  +{allUnlockedAchievements.length - 3} ещё
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-xl bg-amber-500/5 border border-amber-500/15 text-xs text-amber-200/90">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Заполняйте дневник питания и держите высокий DQS для получения первых наград!</span>
+              </div>
+              <button
+                onClick={() => setIsAchievementsModalOpen(true)}
+                className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-lg text-xs transition-all shrink-0 cursor-pointer"
+              >
+                Посмотреть цели
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
 
@@ -287,7 +370,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             setIsMeasurementModalOpen(true);
-                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                            markTaskDone(task.id);
                           }}
                           className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                             hasMeasurements
@@ -309,7 +392,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             setIsWeightModalOpen(true);
-                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                            markTaskDone(task.id);
                           }}
                           className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                             hasWeight
@@ -331,7 +414,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             onOpenQuickMealModal();
-                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                            markTaskDone(task.id);
                           }}
                           className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer active:scale-95"
                         >
@@ -345,7 +428,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             onNavigateTab('weekly_report');
-                            setCompletedTasks((prev) => ({ ...prev, [task.id]: true }));
+                            markTaskDone(task.id);
                           }}
                           className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-600/20 flex items-center gap-1 transition-all cursor-pointer active:scale-95"
                         >

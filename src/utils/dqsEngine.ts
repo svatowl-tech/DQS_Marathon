@@ -3,129 +3,195 @@ import { getFormattedLocalDate, parseLocalDate } from './timeZoneService';
 
 export const DQS_CATEGORIES: DQSCategoryInfo[] = [
   {
-    id: 'vegetables',
-    nameRu: 'Растения (Овощи, ягоды, зелень)',
-    group: 'positive',
-    iconName: 'Salad',
-    description: 'Овощи (все кроме картофеля), ягоды (горсть 60г = 0.5п), зелень (жменя 10-30г = 1п), грибы, чеснок, имбирь',
-    portionExample: '120г сырого / 1 кулак / 1 плод / авокадо 1/2 плода (80г)',
-    scoring: [2, 2, 2, 1, 0, 0],
-  },
-  {
     id: 'fruits',
-    nameRu: 'Фрукты',
+    nameRu: '🍏 Фрукты',
     group: 'positive',
     iconName: 'Apple',
-    description: 'Свежие фрукты (все кроме банана, арбуза, сухофруктов). Персик, яблоко, груша, цитрусы',
-    portionExample: '120г / 1 средний плод (персик 200г = 1.5п)',
-    scoring: [2, 2, 2, 1, 0, 0],
+    description: 'Все фрукты и ягоды (120г; арбуз 250г). Исключения: банан, авокадо, сухофрукты, соки и фреши',
+    portionExample: '120г (1 среднее яблоко / апельсин) / 250г арбуз',
+    scoring: [2, 2, 2, 1, 0, 0, 0, -1],
   },
   {
-    id: 'nuts_seeds',
-    nameRu: 'Орехи и семечки',
+    id: 'vegetables',
+    nameRu: '🍆 Овощи',
     group: 'positive',
-    iconName: 'Nut',
-    description: 'Все орехи и семечки в цельном виде без обжарки, соли, сахара. Арахисовое масло без сахара',
-    portionExample: '10г (маленькая горсть) / 1 ч.л. арахисовой пасты',
-    scoring: [2, 0, -1, -2, -2, -2],
+    iconName: 'Salad',
+    description: 'Грибы и все овощи, включая квашеные и маринованные. Исключения: картофель, бобовые, зелень',
+    portionExample: '120г сырых/тушёных (2 огурца / 1 томат / горсть)',
+    scoring: [2, 2, 2, 1, 0, 0, 0, -1],
   },
   {
-    id: 'whole_grains',
-    nameRu: 'Гарниры ЦЗ и Бобовые',
+    id: 'greens',
+    nameRu: '🌿 Зелень',
     group: 'positive',
-    iconName: 'Wheat',
-    description: 'Овёс, гречка, киноа, булгур, перловка, дикий рис + бобовые (горох, нут, фасоль, чечевица, кукуруза) + ЦЗ макароны',
-    portionExample: '60г сухого → ~120г готовой крупы / ~180г бобовых',
-    scoring: [2, 2, 1, 0, -1, -1],
+    iconName: 'Leaf',
+    description: 'Свежая зелень, листовые салаты, чеснок, имбирь, пряности. Руккола/шпинат 30г, укроп/чеснок 10г',
+    portionExample: '10–30г (руккола 30г, укроп/чеснок 10г)',
+    scoring: [2, 2, 2, 1, 0, 0, 0, -1],
   },
   {
-    id: 'lean_proteins',
-    nameRu: 'Мясо, Птица, Яйца, Рыба',
+    id: 'meat',
+    nameRu: '🥩 Мясо и белок',
     group: 'positive',
     iconName: 'Fish',
-    description: 'Цельные источники белка: красное мясо, птица, субпродукты, яйца (1шт=0.5п), рыба, морепродукты',
-    portionExample: '120г сырого / половина куриного филе (160-240г = 1.5-2п)',
-    scoring: [2, 2, 1, 0, 0, -1],
+    description: 'Цельные источники белка и тофу: мясо, птица, субпродукты, яйца (2шт = 1п), икра (60г), рыба, морепродукты',
+    portionExample: '120г / 2 яйца / 60г икры / тофу',
+    scoring: [2, 2, 1, 0, 0, -1, -2, -2],
   },
   {
     id: 'dairy',
-    nameRu: 'Молочные продукты',
+    nameRu: '🥛 Диет. молочка',
     group: 'positive',
     iconName: 'Milk',
-    description: 'Жидкое (120г молоко/кефир/йогурт без сахара), Твердое белое (60г творог/фета/моцарелла), Желтое (10-20g сыр/сметана)',
-    portionExample: '120г молоко или 60г творог или 15-20г желтый сыр',
-    scoring: [2, 2, 1, 0, -1, -2],
+    description: 'Творог, скир, греческий йогурт, молоко, кефир, ряженка без сахара, протеин, белковые сырники',
+    portionExample: 'Густая 120г / Жидкая 250мл',
+    scoring: [2, 2, 1, 0, -1, -2, -2, -2],
   },
   {
-    id: 'healthy_drinks',
-    nameRu: 'Полезные напитки (без калорий)',
+    id: 'nuts',
+    nameRu: '🥜 Орехи и семена',
     group: 'positive',
-    iconName: 'Coffee',
-    description: 'Кофе свежемолотый, чай без сахара, минералка',
-    portionExample: '120-240мл / 1 чашка или бокал (Вода обычная не учитывается)',
-    scoring: [1, 1, 0, -1, -1, -2],
+    iconName: 'Nut',
+    description: 'Орехи (миндаль, грецкие, кешью) и семена (лен, чиа, тыквенные), чистая ореховая паста без сахара',
+    portionExample: '10г (горсть орехов / 1 ст.л.)',
+    scoring: [2, 0, -1, -2, -2, -2, -2, -2],
   },
   {
-    id: 'oils_fats',
-    nameRu: 'Масла и жиры',
+    id: 'whole_grains',
+    nameRu: '🌽 Цельные злаки',
     group: 'positive',
+    iconName: 'Wheat',
+    description: 'Овёс, гречка, киноа, булгур, перловка, бурый рис, полба, 100% ЦЗ макароны, 100% ЦЗ хлеб (80г)',
+    portionExample: '50–60г сухих / 120–180г готовых / 80г ЦЗ хлеба',
+    scoring: [2, 2, 1, 0, -1, -1, -1, -2],
+  },
+  {
+    id: 'legumes',
+    nameRu: '🌱 Бобовые',
+    group: 'positive',
+    iconName: 'Sprout',
+    description: 'Фасоль, нут, чечевица, горох, маш, эдамаме, кукуруза в любом виде',
+    portionExample: '50–60г сухих / 170–220г готовых',
+    scoring: [2, 2, 1, 0, -1, -1, -1, -2],
+  },
+  {
+    id: 'cheese',
+    nameRu: '🧀 Сыры и жирная молочка',
+    group: 'limited',
+    iconName: 'Cheese',
+    description: 'Твёрдые сыры (15г), мягкие (30г моцарелла/фета), рассольные (45г брынза), сметана и сливки (30г), раф',
+    portionExample: '15г твёрдого / 30г мягкого, сметаны / 45г брынзы',
+    scoring: [2, 0, -1, -2, -2, -2, -2, -2],
+  },
+  {
+    id: 'oils',
+    nameRu: '🧈 Масло и жиры',
+    group: 'limited',
     iconName: 'Droplet',
-    description: 'Сливочное масло, растительные масла (оливковое и др.), гхи, рыбий жир. (До 10г/день = лекарство, далее = яд)',
-    portionExample: '5г (1 порция). Учитываем впитывание при жарке',
-    scoring: [1, 0, -1, -2, -2, -2],
+    description: 'Растительные масла, сливочное и топленое масло, гхи, сало, майонез (5г), авокадо (0.5 плода)',
+    portionExample: '3г масла / 5г майонеза / 0.5 авокадо',
+    scoring: [1, 0, 0, -1, -2, -2, -2, -2],
   },
   {
-    id: 'refined_grains',
-    nameRu: 'Гарнир обычный (бесполезный)',
-    group: 'negative',
+    id: 'potatoes',
+    nameRu: '🥔 Картофель и батат',
+    group: 'limited',
+    iconName: 'CookingPot',
+    description: 'Отварной, запечённый картофель, батат, пюре (без обжарки во фритюре)',
+    portionExample: '200–300г готового картофеля',
+    scoring: [2, 1, 0, -1, -2, -2, -2, -2],
+  },
+  {
+    id: 'other_grains',
+    nameRu: '🍞 Другие гарниры',
+    group: 'neutral',
     iconName: 'Croissant',
-    description: 'Хлеб, обычные макароны, обычный рис, картофель, бананы, сухофрукты, хлебцы/снеки без сахара',
-    portionExample: '60г сухого / 120г готового / картофель 120г / бананы 60г',
-    scoring: [0, -1, -2, -2, -2, -2],
+    description: 'Белый рис, макароны В/С, белый хлеб, лаваш, хлебцы, банан без кожуры (120г), сухофрукты (80г)',
+    portionExample: '50–60г сухих / 170–220г готовых / 80г хлеба / 120г банан',
+    scoring: [0, -1, -2, -2, -2, -2, -2, -2],
   },
   {
     id: 'sweets',
-    nameRu: 'Сладкое и десерты',
+    nameRu: '🍰 Сладости',
     group: 'negative',
     iconName: 'Candy',
-    description: 'Всё с добавленным сахаром: печенье, торты, шоколад, мёд, мороженое, сладкие йогурты',
-    portionExample: '60г для всего (Сникерс 85г = 1.5п, Чизкейк 120г = 2п)',
-    scoring: [0, -1, -2, -2, -2, -2],
+    description: 'Всё с добавленным сахаром/медом/сиропом: шоколад, конфеты, печенье, торты, мороженое, сладости',
+    portionExample: '30г концентрированного / 60г выпечки / 120г десерта',
+    scoring: [-1, -2, -2, -2, -2, -2, -2, -2],
   },
   {
-    id: 'processed_meats',
-    nameRu: 'Ультра-обработанная еда',
-    group: 'negative',
-    iconName: 'Beef',
-    description: 'Полуфабрикаты (котлеты, наггетсы, пельмени, колбасы), чипсы, фастфуд, ресторанные сложные блюда',
-    portionExample: '120г / снеки 60г',
-    scoring: [0, -1, -2, -2, -2, -2],
-  },
-  {
-    id: 'sugary_drinks_alcohol',
-    nameRu: 'Нездоровые напитки и алкоголь',
+    id: 'sugary_drinks',
+    nameRu: '🥤 Сладкие напитки',
     group: 'negative',
     iconName: 'GlassWater',
-    description: 'Газировки с сахаром, соки, энергетики, сладкий кофе/какао, алкоголь, пиво',
-    portionExample: '240мл (200-300мл = 1 порция)',
-    scoring: [0, -1, -2, -2, -2, -2],
+    description: 'Сладкая газировка, соки, нектары, энергетики, квас, морсы, кофе с сиропами, безалкогольное пиво',
+    portionExample: '240мл (35–40 ккал/100мл) / 500мл (15–20 ккал/100мл)',
+    scoring: [-1, -2, -2, -2, -2, -2, -2, -2],
+  },
+  {
+    id: 'alcohol',
+    nameRu: '🍾 Алкоголь',
+    group: 'negative',
+    iconName: 'Wine',
+    description: 'Пиво/сидр 5% (250мл), сухое вино (150мл), крепленое вино (70мл), крепкий алкоголь 40% (30мл). 1п = ~10мл этанола',
+    portionExample: '250мл пива / 150мл вина / 30мл крепкого',
+    scoring: [-1, -2, -2, -2, -2, -2, -2, -2],
+  },
+  {
+    id: 'fried_food',
+    nameRu: '🍟 Жаренное во фритюре',
+    group: 'negative',
+    iconName: 'Flame',
+    description: 'Картофель фри, чипсы, наггетсы, стрипсы, крылья в панировке, шницели, рыба в кляре, чебуреки, беляши',
+    portionExample: '120г блюда / 60г сухих снеков',
+    scoring: [-1, -2, -2, -2, -2, -2, -2, -2],
+  },
+  {
+    id: 'processed_meat',
+    nameRu: '🌭 Переработанное мясо',
+    group: 'negative',
+    iconName: 'Beef',
+    description: 'Сосиски, колбасы, ветчина, бекон, готовые покупные котлеты, полуфабрикаты, рыбные палочки',
+    portionExample: '120г готовых продуктов / 60г сушеного мяса/рыбы',
+    scoring: [-1, -2, -2, -2, -2, -2, -2, -2],
   },
 ];
 
-export const CATEGORY_AVG_CALORIES: Record<CategoryId, number> = {
-  fruits: 55,
-  vegetables: 55,
-  nuts_seeds: 61,
-  whole_grains: 198,
-  lean_proteins: 167,
-  dairy: 80,
-  healthy_drinks: 0,
-  oils_fats: 41,
-  refined_grains: 212,
-  processed_meats: 332,
-  sweets: 456,
-  sugary_drinks_alcohol: 103,
+export const CATEGORY_AVG_CALORIES: Partial<Record<CategoryId, number>> = {
+  fruits: 60,
+  vegetables: 40,
+  greens: 15,
+  meat: 180,
+  dairy: 90,
+  cheese: 110,
+  nuts: 180,
+  oils: 90,
+  whole_grains: 180,
+  legumes: 180,
+  potatoes: 160,
+  other_grains: 200,
+  sweets: 300,
+  sugary_drinks: 110,
+  alcohol: 150,
+  fried_food: 350,
+  processed_meat: 300,
 };
+
+export function isHealthyCategory(catId: CategoryId): boolean {
+  return ['fruits', 'vegetables', 'greens', 'meat', 'dairy', 'nuts', 'whole_grains', 'legumes'].includes(catId);
+}
+
+export function isLimitedCategory(catId: CategoryId): boolean {
+  return ['cheese', 'oils', 'potatoes'].includes(catId);
+}
+
+export function isNeutralCategory(catId: CategoryId): boolean {
+  return catId === 'other_grains';
+}
+
+export function isRestrictedCategory(catId: CategoryId): boolean {
+  return ['sweets', 'sugary_drinks', 'alcohol', 'fried_food', 'processed_meat'].includes(catId);
+}
 
 export function calculatePredictedCalories(servings: Record<CategoryId, number>): number {
   let total = 0;
@@ -169,46 +235,240 @@ export function calculateDailyDQS(
     const count = servings[cat.id] || 0;
     score += getCategoryPoints(cat.id, count);
 
-    // Diversity bonus: +2 if 3+ different foods in category checked
-    if (diversity[cat.id] && count >= 1) {
-      score += 2;
+    // Diversity bonus: +1 point if 3+ different foods in category checked
+    // PDF Guide 11.08.2026 page 2: "Разнообразие учитывается только внутри полезных категорий. Это даст 1 балл."
+    if (isHealthyCategory(cat.id) && diversity[cat.id] && count >= 1) {
+      score += 1;
     }
   });
 
-  return score;
+  return Math.round(score * 10) / 10;
 }
 
 export function getInitialServings(): Record<CategoryId, number> {
   return {
-    vegetables: 0,
     fruits: 0,
-    nuts_seeds: 0,
-    whole_grains: 0,
-    lean_proteins: 0,
+    vegetables: 0,
+    greens: 0,
+    meat: 0,
     dairy: 0,
-    healthy_drinks: 0,
-    oils_fats: 0,
-    refined_grains: 0,
+    cheese: 0,
+    nuts: 0,
+    oils: 0,
+    whole_grains: 0,
+    legumes: 0,
+    potatoes: 0,
+    other_grains: 0,
     sweets: 0,
-    processed_meats: 0,
-    sugary_drinks_alcohol: 0,
-  };
+    sugary_drinks: 0,
+    alcohol: 0,
+    fried_food: 0,
+    processed_meat: 0,
+  } as Record<CategoryId, number>;
 }
 
 export function getInitialDiversity(): Record<CategoryId, boolean> {
   return {
-    vegetables: false,
     fruits: false,
-    nuts_seeds: false,
-    whole_grains: false,
-    lean_proteins: false,
+    vegetables: false,
+    greens: false,
+    meat: false,
     dairy: false,
-    healthy_drinks: false,
-    oils_fats: false,
-    refined_grains: false,
+    cheese: false,
+    nuts: false,
+    oils: false,
+    whole_grains: false,
+    legumes: false,
+    potatoes: false,
+    other_grains: false,
     sweets: false,
-    processed_meats: false,
-    sugary_drinks_alcohol: false,
+    sugary_drinks: false,
+    alcohol: false,
+    fried_food: false,
+    processed_meat: false,
+  } as Record<CategoryId, boolean>;
+}
+
+export function migrateDailyLogEntry(entry: DailyLogEntry): DailyLogEntry {
+  if (!entry || typeof entry !== 'object') return entry;
+  const initialS = getInitialServings();
+  const initialD = getInitialDiversity();
+
+  const rawServings = (entry.servings || {}) as Record<string, any>;
+  const rawDiversity = (entry.diversity || {}) as Record<string, any>;
+
+  const servings: Record<CategoryId, number> = { ...initialS };
+  const diversity: Record<CategoryId, boolean> = { ...initialD };
+
+  // Helper map for legacy category keys -> modern CategoryId
+  const legacyKeyMap: Record<string, CategoryId> = {
+    nuts_seeds: 'nuts',
+    lean_proteins: 'meat',
+    oils_fats: 'oils',
+    refined_grains: 'other_grains',
+    processed_meats: 'processed_meat',
+    sugary_drinks_alcohol: 'sugary_drinks',
+  };
+
+  // Process raw servings
+  Object.keys(rawServings).forEach((key) => {
+    const targetKey = (legacyKeyMap[key] || key) as CategoryId;
+    if (initialS[targetKey] !== undefined) {
+      const val = parseFloat(rawServings[key]);
+      if (Number.isFinite(val) && val > 0) {
+        servings[targetKey] = (servings[targetKey] || 0) + val;
+      }
+    }
+  });
+
+  // Process raw diversity
+  Object.keys(rawDiversity).forEach((key) => {
+    const targetKey = (legacyKeyMap[key] || key) as CategoryId;
+    if (initialD[targetKey] !== undefined) {
+      diversity[targetKey] = Boolean(rawDiversity[key]) || diversity[targetKey];
+    }
+  });
+
+  // Ensure all values are finite clean numbers
+  (Object.keys(servings) as CategoryId[]).forEach((catId) => {
+    const v = servings[catId];
+    servings[catId] = Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : 0;
+  });
+
+  // Migrate photos inside entry if present
+  let migratedPhotos = entry.photos;
+  if (Array.isArray(entry.photos)) {
+    migratedPhotos = entry.photos.map((photo) => {
+      if (!photo || !photo.servingsAdded) return photo;
+      const mRaw = photo.servingsAdded as Record<string, any>;
+      const mServings: Record<string, number> = {};
+      Object.keys(mRaw).forEach((k) => {
+        const targetK = legacyKeyMap[k] || k;
+        const v = parseFloat(mRaw[k]);
+        if (Number.isFinite(v) && v > 0) {
+          mServings[targetK] = (mServings[targetK] || 0) + v;
+        }
+      });
+      return {
+        ...photo,
+        servingsAdded: mServings as any,
+      };
+    });
+  }
+
+  const score = calculateDailyDQS(servings, diversity);
+
+  // Sync weight & morningWeight
+  const morningWeight = entry.morningWeight ?? entry.weight;
+  const weight = entry.weight ?? morningWeight;
+
+  // Sync measurements
+  const waist = entry.waist ?? entry.measurements?.waist;
+  const hips = entry.hips ?? entry.measurements?.hips;
+  const chest = entry.chest ?? entry.measurements?.chest;
+  const thigh = entry.thigh ?? entry.measurements?.thigh;
+  const arm = entry.arm ?? entry.measurements?.arm;
+
+  const measurements = {
+    chest: chest ?? entry.measurements?.chest,
+    waist: waist ?? entry.measurements?.waist,
+    hips: hips ?? entry.measurements?.hips,
+    thigh: thigh ?? entry.measurements?.thigh,
+    arm: arm ?? entry.measurements?.arm,
+  };
+
+  return {
+    ...entry,
+    servings,
+    diversity,
+    calculatedScore: score,
+    weight,
+    morningWeight,
+    waist,
+    hips,
+    chest,
+    thigh,
+    arm,
+    measurements,
+    completedTasks: entry.completedTasks || {},
+    photos: Array.isArray(migratedPhotos) ? migratedPhotos : [],
+    workout: entry.workout || { done: false, description: '' },
+    journal: entry.journal || { hungerBefore: 5, fullnessAfter: 7, mood: 'great', note: '' },
+    trackers: entry.trackers || { waterGlass: 0, coffeeCups: 0, sleepHours: 7 },
+  };
+}
+
+export function hasLegacyEntries(logs: DailyLogEntry[]): boolean {
+  if (!Array.isArray(logs) || logs.length === 0) return false;
+
+  const legacyKeys = ['nuts_seeds', 'lean_proteins', 'oils_fats', 'refined_grains', 'processed_meats', 'sugary_drinks_alcohol'];
+
+  return logs.some((l) => {
+    if (!l || !l.servings) return true;
+    const s = l.servings as Record<string, any>;
+    // Check if any legacy key exists with a value > 0
+    const hasLegacyKey = legacyKeys.some((k) => s[k] !== undefined && s[k] > 0);
+    if (hasLegacyKey) return true;
+
+    // Check if score is inconsistent or undefined
+    const score = calculateDailyDQS(l.servings, l.diversity || getInitialDiversity());
+    if (l.calculatedScore === undefined || Math.abs((l.calculatedScore || 0) - score) > 0.1) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+export function migrateAllLogs(logs: DailyLogEntry[]): DailyLogEntry[] {
+  if (!Array.isArray(logs)) return [];
+  return logs
+    .filter((l) => l && typeof l === 'object' && l.date)
+    .map(migrateDailyLogEntry);
+}
+
+export function migrateUserSettings(settings: UserSettings): UserSettings {
+  if (!settings || typeof settings !== 'object') return settings;
+
+  const legacyKeyMap: Record<string, string> = {
+    nuts_seeds: 'nuts',
+    lean_proteins: 'meat',
+    oils_fats: 'oils',
+    refined_grains: 'other_grains',
+    processed_meats: 'processed_meat',
+    sugary_drinks_alcohol: 'sugary_drinks',
+  };
+
+  let favMeals = settings.favoriteMeals;
+  if (Array.isArray(settings.favoriteMeals)) {
+    favMeals = settings.favoriteMeals.map((meal) => {
+      if (!meal || !meal.servings) return meal;
+      const mRaw = meal.servings as Record<string, any>;
+      const mServings: Record<string, number> = {};
+      Object.keys(mRaw).forEach((k) => {
+        const targetK = legacyKeyMap[k] || k;
+        const v = parseFloat(mRaw[k]);
+        if (Number.isFinite(v) && v > 0) {
+          mServings[targetK] = (mServings[targetK] || 0) + v;
+        }
+      });
+      return {
+        ...meal,
+        servings: mServings as any,
+      };
+    });
+  }
+
+  const heightCm = settings.heightCm ?? settings.height;
+  const targetWeightKg = settings.targetWeightKg ?? settings.targetWeight;
+  const weightKg = settings.weightKg ?? settings.startWeight;
+
+  return {
+    ...settings,
+    heightCm,
+    targetWeightKg,
+    weightKg,
+    favoriteMeals: favMeals,
   };
 }
 

@@ -12,6 +12,9 @@ import {
   MoreHorizontal,
   X,
   Utensils,
+  Scale,
+  Heart,
+  TrendingDown,
 } from 'lucide-react';
 import { ActiveTab, DailyLogEntry } from '../types';
 import { formatDateRu } from '../utils/dqsEngine';
@@ -63,21 +66,25 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, todayLo
   const getScoreBadge = (score: number) => {
     if (score >= 15) return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
     if (score >= 8) return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
-    return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+    if (score >= -2) return 'bg-zinc-800/80 text-zinc-400 border-zinc-700';
+    return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
   };
 
   const primaryMobileTabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Главная', icon: <Sparkles className="w-5 h-5" /> },
     { id: 'log', label: 'Дневник', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'dictionary', label: 'Словарь', icon: <Utensils className="w-5 h-5" /> },
+    { id: 'weigh_in', label: 'Замеры', icon: <Scale className="w-5 h-5" /> },
     { id: 'table', label: 'Таблица', icon: <Table className="w-5 h-5" /> },
-    { id: 'weekly_report', label: 'Отчет', icon: <Award className="w-5 h-5" /> },
   ];
 
   const allNavItems: { id: ActiveTab; label: string; icon: React.ReactNode; badge?: boolean }[] = [
     { id: 'home', label: 'Главная', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'log', label: 'Дневник', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'dictionary', label: 'Словарь еды', icon: <Utensils className="w-4 h-4" /> },
+    { id: 'weigh_in', label: 'Взвешивания', icon: <Scale className="w-4 h-4" /> },
+    { id: 'metabolism', label: 'Метаболизм', icon: <Heart className="w-4 h-4" /> },
+    { id: 'weight_loss_analysis', label: 'Анализ похудения', icon: <TrendingDown className="w-4 h-4" /> },
     { id: 'table', label: 'DQS-Таблица', icon: <Table className="w-4 h-4" /> },
     { id: 'guide', label: 'Гайды DQS', icon: <FileText className="w-4 h-4" /> },
     { id: 'weekly_report', label: 'Отчет недели', icon: <Award className="w-4 h-4" />, badge: true },
@@ -90,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, todayLo
     <>
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-[#09090b]/90 backdrop-blur-md border-b border-white/[0.08]">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4">
+        <div className="w-full max-w-[1800px] mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('home')}>

@@ -83,7 +83,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ logs, settings, selectedDa
             {/* POSITIVE */}
             <tr className="bg-emerald-500/10 print:bg-slate-100 font-bold text-emerald-400 print:text-slate-900">
               <td colSpan={9} className="p-1.5 px-2 uppercase border-b border-white/20 print:border-slate-900">
-                ✔ Здоровые категории (Положительные баллы)
+                ✔ Здоровые и нейтральные категории (Плюс / 0 баллов)
               </td>
             </tr>
 
