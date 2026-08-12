@@ -39,6 +39,7 @@ import {
 } from '../utils/dqsEngine';
 import { getFormattedLocalDate, parseLocalDate } from '../utils/timeZoneService';
 import { compressImage } from '../utils/imageCompressor';
+import { toast } from '../utils/toast';
 import { QuickMealBuilder } from './QuickMealBuilder';
 import { ExportDailyReportModal } from './ExportDailyReportModal';
 
@@ -134,6 +135,7 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
         });
       } catch (err) {
         console.error('Error compressing photo:', err);
+        toast.error('Ошибка загрузки', 'Не удалось обработать некоторые фотографии.');
       }
     }
 
@@ -170,7 +172,8 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
   const negativeCats = DQS_CATEGORIES.filter((c) => c.group === 'neutral' || c.group === 'negative');
 
   const getScoreBadge = (score: number) => {
-    if (score >= 18) {
+    const targetGreen = settings?.targetDqsGreen || 18;
+    if (score >= targetGreen) {
       return {
         label: 'ЗЕЛЕНЫЙ ДЕНЬ (Отлично!)',
         bg: 'bg-emerald-500 text-white border-emerald-600',

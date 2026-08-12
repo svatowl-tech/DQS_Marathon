@@ -18,6 +18,7 @@ import {
 import { CategoryId, DailyLogEntry, FavoriteMealTemplate, PhotoEntry, UserSettings } from '../types';
 import { DQS_CATEGORIES, calculateDailyDQS, getInitialServings } from '../utils/dqsEngine';
 import { compressImage } from '../utils/imageCompressor';
+import { toast } from '../utils/toast';
 import { searchFoodDictionary, calculatePortion } from '../utils/foodCalculator';
 
 interface QuickAddMealModalProps {
@@ -248,6 +249,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
         setPhotoUrl(compressed);
       } catch (err) {
         console.error('Photo compression failed', err);
+        toast.error('Ошибка загрузки', 'Не удалось загрузить или сжать фотографию. Попробуйте другой снимок.');
       }
     }
   };
@@ -370,7 +372,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
     }
   };
 
-  const healthyCategories = DQS_CATEGORIES.filter((c) => c.group === 'positive');
+  const healthyCategories = DQS_CATEGORIES.filter((c) => c.group !== 'negative');
   const restrictedCategories = DQS_CATEGORIES.filter((c) => c.group === 'negative');
 
   const activeCategories = categoryTab === 'healthy' ? healthyCategories : restrictedCategories;
@@ -694,14 +696,14 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
                           {Object.entries(calc.servings).map(([catId, val]) => {
                             const catInfo = DQS_CATEGORIES.find((c) => c.id === catId);
                             if (!catInfo || !val) return null;
-                            const isPositive = catInfo.group === 'positive';
+                            const isNegative = catInfo.group === 'negative';
                             return (
                               <span
                                 key={catId}
                                 className={`px-2 py-1 rounded-md text-[11px] font-bold border ${
-                                  isPositive
-                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                                    : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                                  isNegative
+                                    ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                                 }`}
                               >
                                 {catInfo.nameRu}: +{val}

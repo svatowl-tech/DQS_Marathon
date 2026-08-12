@@ -62,6 +62,11 @@ export interface OptionalTrackers {
   coffeeCups?: number;
   sleepHours?: number;
   alcoholUnits?: number;
+  apples?: number;
+  watermelons?: number;
+  melons?: number;
+  teaCups?: number;
+  sodaGlasses?: number;
 }
 
 export interface DailyLogEntry {

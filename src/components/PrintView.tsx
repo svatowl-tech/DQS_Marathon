@@ -87,7 +87,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ logs, settings, selectedDa
               </td>
             </tr>
 
-            {DQS_CATEGORIES.filter((c) => c.group === 'positive').map((cat) => (
+            {DQS_CATEGORIES.filter((c) => c.group !== 'negative').map((cat) => (
               <tr key={cat.id} className="border-b border-white/10 print:border-slate-900">
                 <td className="p-2 border-r border-white/20 print:border-slate-900 font-bold text-slate-200 print:text-slate-900">{cat.nameRu}</td>
                 <td className="p-2 border-r border-white/20 print:border-slate-900 text-[10px] text-slate-400 print:text-slate-700">

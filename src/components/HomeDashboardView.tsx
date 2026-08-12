@@ -110,21 +110,28 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
   };
 
   const score = currentLog.calculatedScore;
+  const targetGreen = userSettings.targetDqsGreen || 18;
+  const targetYellow = 10;
+  const targetGrey = -2;
+
   let scoreBadgeStyle = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
   let scoreTitle = 'Зеленый день (Отличный)';
-  if (score < 8 && score >= 3) {
+  if (score >= targetGreen) {
+    scoreBadgeStyle = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+    scoreTitle = 'Зеленый день (Отличный)';
+  } else if (score >= targetYellow) {
     scoreBadgeStyle = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
     scoreTitle = 'Желтый день (Нормальный)';
-  } else if (score < 3 && score >= -2) {
+  } else if (score >= targetGrey) {
     scoreBadgeStyle = 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     scoreTitle = 'Серый день (В процессе)';
-  } else if (score < -2) {
+  } else {
     scoreBadgeStyle = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
     scoreTitle = 'Красный день (Разбор)';
   }
 
   const totalLogs = allLogs.length;
-  const greenDays = allLogs.filter((l) => l.calculatedScore >= 15).length;
+  const greenDays = allLogs.filter((l) => l.calculatedScore >= targetGreen).length;
   const avgScore =
     totalLogs > 0
       ? (allLogs.reduce((acc, l) => acc + l.calculatedScore, 0) / totalLogs).toFixed(1)
@@ -135,6 +142,23 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
     ...achievementsData.unlockedPermanent,
     ...achievementsData.unlockedWeekly,
   ];
+
+  const updateDrink = (type: 'waterGlass' | 'coffeeCups' | 'teaCups' | 'sodaGlasses', delta: number) => {
+    const updated = { ...currentLog };
+    const currentVal = updated.trackers?.[type] || 0;
+    const newVal = Math.max(0, currentVal + delta);
+    if (currentVal === newVal) return;
+    
+    updated.trackers = { ...updated.trackers, [type]: newVal };
+
+    // If it's soda, also update sugary_drinks in servings
+    if (type === 'sodaGlasses') {
+      const currentSodaServings = updated.servings?.sugary_drinks || 0;
+      updated.servings = { ...updated.servings, sugary_drinks: Math.max(0, currentSodaServings + delta) };
+    }
+
+    onUpdateLog(updated);
+  };
 
   return (
     <div className="space-y-6 w-full max-w-[1800px] mx-auto pb-12">
@@ -494,7 +518,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
             </div>
 
             {/* Workout Status Card */}
-            <div className="bg-white/[0.03] p-3 rounded-xl border border-white/[0.06] flex items-center justify-between gap-3">
+            <div className="bg-white/[0.03] p-3 rounded-xl border border-white/[0.06] flex items-center justify-between gap-3 mt-3">
               <div className="space-y-0.5 overflow-hidden">
                 <span className="text-[11px] text-zinc-400 font-medium flex items-center gap-1">
                   <Dumbbell className="w-3.5 h-3.5 text-orange-400" /> Тренировка дня
@@ -518,6 +542,101 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({
               >
                 {currentLog.workout.done ? 'Редактировать' : '+ Добавить'}
               </button>
+            </div>
+
+            {/* Drinks Tracker Widget */}
+            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] mt-3">
+              <span className="text-[11px] text-zinc-400 font-medium flex items-center gap-1 uppercase tracking-wider mb-2">
+                💧 Напитки за день
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                {/* Water */}
+                <div className="flex flex-col items-center gap-1 bg-blue-500/10 rounded-lg py-2 border border-blue-500/10 relative">
+                  <span className="text-lg">💧</span>
+                  <span className="text-[10px] text-blue-200/70 font-medium">Вода</span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button onClick={() => updateDrink('waterGlass', -1)} className="w-5 h-5 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 flex items-center justify-center text-xs transition-colors">-</button>
+                    <span className="text-xs font-bold text-blue-400 w-4 text-center">{currentLog.trackers?.waterGlass || 0}</span>
+                    <button onClick={() => updateDrink('waterGlass', 1)} className="w-5 h-5 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 flex items-center justify-center text-xs transition-colors">+</button>
+                  </div>
+                </div>
+
+                {/* Coffee */}
+                <div className="flex flex-col items-center gap-1 bg-amber-500/10 rounded-lg py-2 border border-amber-500/10 relative">
+                  <span className="text-lg">☕</span>
+                  <span className="text-[10px] text-amber-200/70 font-medium">Кофе</span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button onClick={() => updateDrink('coffeeCups', -1)} className="w-5 h-5 rounded bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 flex items-center justify-center text-xs transition-colors">-</button>
+                    <span className="text-xs font-bold text-amber-400 w-4 text-center">{currentLog.trackers?.coffeeCups || 0}</span>
+                    <button onClick={() => updateDrink('coffeeCups', 1)} className="w-5 h-5 rounded bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 flex items-center justify-center text-xs transition-colors">+</button>
+                  </div>
+                </div>
+
+                {/* Tea */}
+                <div className="flex flex-col items-center gap-1 bg-emerald-500/10 rounded-lg py-2 border border-emerald-500/10 relative">
+                  <span className="text-lg">🍵</span>
+                  <span className="text-[10px] text-emerald-200/70 font-medium">Чай</span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button onClick={() => updateDrink('teaCups', -1)} className="w-5 h-5 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 flex items-center justify-center text-xs transition-colors">-</button>
+                    <span className="text-xs font-bold text-emerald-400 w-4 text-center">{currentLog.trackers?.teaCups || 0}</span>
+                    <button onClick={() => updateDrink('teaCups', 1)} className="w-5 h-5 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 flex items-center justify-center text-xs transition-colors">+</button>
+                  </div>
+                </div>
+
+                {/* Soda */}
+                <div className="flex flex-col items-center gap-1 bg-purple-500/10 rounded-lg py-2 border border-purple-500/10 relative group">
+                  <span className="text-lg">🥤</span>
+                  <span className="text-[10px] text-purple-200/70 font-medium">Газировка</span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button onClick={() => updateDrink('sodaGlasses', -1)} className="w-5 h-5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center justify-center text-xs transition-colors">-</button>
+                    <span className="text-xs font-bold text-purple-400 w-4 text-center">{currentLog.trackers?.sodaGlasses || 0}</span>
+                    <button onClick={() => updateDrink('sodaGlasses', 1)} className="w-5 h-5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center justify-center text-xs transition-colors">+</button>
+                  </div>
+                  {/* Tooltip to explain sugary drinks mapping */}
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-700 text-zinc-300 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity shadow-lg z-10">
+                    Добавляет "Сладкие напитки"
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Apple Season Widget */}
+            <div className="bg-gradient-to-r from-red-500/10 to-orange-500/5 p-3 rounded-xl border border-red-500/20 flex items-center justify-between gap-3 mt-3 shadow-inner shadow-red-500/5">
+              <div className="space-y-0.5">
+                <span className="text-[11px] text-red-400 font-medium flex items-center gap-1 uppercase tracking-wider">
+                  🍎 Сезон яблок
+                </span>
+                <p className="text-xs text-red-200/80">
+                  Съедено сегодня: <span className="font-bold text-red-400 text-sm ml-1">{currentLog.trackers?.apples || 0}</span> шт.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {(currentLog.trackers?.apples || 0) > 0 && (
+                  <button
+                    onClick={() => {
+                      const updated = { ...currentLog };
+                      updated.trackers = { ...updated.trackers, apples: Math.max(0, (updated.trackers?.apples || 0) - 1) };
+                      updated.servings = { ...updated.servings, fruits: Math.max(0, (updated.servings?.fruits || 0) - 1) };
+                      onUpdateLog(updated);
+                    }}
+                    className="w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm border border-red-500/10"
+                  >
+                    -
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    const updated = { ...currentLog };
+                    updated.trackers = { ...updated.trackers, apples: (updated.trackers?.apples || 0) + 1 };
+                    updated.servings = { ...updated.servings, fruits: (updated.servings?.fruits || 0) + 1 };
+                    onUpdateLog(updated);
+                  }}
+                  className="w-9 h-9 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold flex items-center justify-center transition-all cursor-pointer border border-red-500/30 shrink-0 shadow-md active:scale-95"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
         </div>
