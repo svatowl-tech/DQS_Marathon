@@ -640,7 +640,7 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
                       <div className="flex flex-wrap gap-1 pt-1">
                         {nonZeroServings.map(([catId, count]) => {
                           const catObj = DQS_CATEGORIES.find((c) => c.id === catId);
-                          const isNegative = catObj?.group === 'negative';
+                          const isNegative = catObj?.group === 'negative' || catObj?.group === 'neutral';
                           return (
                             <span
                               key={catId}

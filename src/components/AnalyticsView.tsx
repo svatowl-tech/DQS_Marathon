@@ -639,7 +639,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     {categoryRanking.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.group === 'positive' ? '#10b981' : '#f43f5e'}
+                        fill={entry.group === 'positive' || entry.group === 'limited' ? '#10b981' : '#f43f5e'}
                       />
                     ))}
                   </Bar>
@@ -659,7 +659,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <div className="flex items-center gap-2">
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        cat.group === 'positive' ? 'bg-emerald-400' : 'bg-rose-500'
+                        cat.group === 'positive' || cat.group === 'limited' ? 'bg-emerald-400' : 'bg-rose-500'
                       }`}
                     />
                     <h4 className="font-extrabold text-xs text-zinc-100">{cat.nameRu}</h4>
@@ -672,7 +672,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <div className="text-right">
                   <span
                     className={`text-base font-black ${
-                      cat.group === 'positive' ? 'text-emerald-400' : 'text-rose-400'
+                      cat.group === 'positive' || cat.group === 'limited' ? 'text-emerald-400' : 'text-rose-400'
                     }`}
                   >
                     {cat.totalServings}

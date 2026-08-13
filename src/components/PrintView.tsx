@@ -83,11 +83,11 @@ export const PrintView: React.FC<PrintViewProps> = ({ logs, settings, selectedDa
             {/* POSITIVE */}
             <tr className="bg-emerald-500/10 print:bg-slate-100 font-bold text-emerald-400 print:text-slate-900">
               <td colSpan={9} className="p-1.5 px-2 uppercase border-b border-white/20 print:border-slate-900">
-                ✔ Здоровые и нейтральные категории (Плюс / 0 баллов)
+                ✔ Здоровые и качественные категории (Плюс баллы)
               </td>
             </tr>
 
-            {DQS_CATEGORIES.filter((c) => c.group !== 'negative').map((cat) => (
+            {DQS_CATEGORIES.filter((c) => c.group === 'positive' || c.group === 'limited').map((cat) => (
               <tr key={cat.id} className="border-b border-white/10 print:border-slate-900">
                 <td className="p-2 border-r border-white/20 print:border-slate-900 font-bold text-slate-200 print:text-slate-900">{cat.nameRu}</td>
                 <td className="p-2 border-r border-white/20 print:border-slate-900 text-[10px] text-slate-400 print:text-slate-700">
@@ -108,7 +108,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ logs, settings, selectedDa
               </td>
             </tr>
 
-            {DQS_CATEGORIES.filter((c) => c.group === 'negative').map((cat) => (
+            {DQS_CATEGORIES.filter((c) => c.group === 'negative' || c.group === 'neutral').map((cat) => (
               <tr key={cat.id} className="border-b border-white/10 print:border-slate-900">
                 <td className="p-2 border-r border-white/20 print:border-slate-900 font-bold text-slate-200 print:text-slate-900">{cat.nameRu}</td>
                 <td className="p-2 border-r border-white/20 print:border-slate-900 text-[10px] text-slate-400 print:text-slate-700">

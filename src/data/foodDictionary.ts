@@ -2,11 +2,13 @@ import { CategoryId } from '../types';
 import { SOUPS_FOOD_ITEMS } from './food/soups';
 import { MAINS_FOOD_ITEMS } from './food/mains';
 import { GARNISHES_FOOD_ITEMS } from './food/garnishes';
+import { BREAD_BAKERY_FOOD_ITEMS } from './food/bread_bakery';
 import { SALADS_FOOD_ITEMS } from './food/salads';
 import { FASTFOOD_FOOD_ITEMS } from './food/fastfood';
 import { PIZZA_PASTA_FOOD_ITEMS } from './food/pizza_pasta';
 import { ASIAN_FOOD_ITEMS } from './food/asian';
 import { DAIRY_EGGS_FOOD_ITEMS } from './food/dairy_eggs';
+import { CANDIES_CHOCOLATES_FOOD_ITEMS } from './food/candies_chocolates';
 import { PASTRY_SWEETS_FOOD_ITEMS } from './food/pastry_sweets';
 import { FRUITS_NUTS_FOOD_ITEMS } from './food/fruits_nuts';
 import { VEGETABLES_FOOD_ITEMS } from './food/vegetables';
@@ -21,11 +23,13 @@ export interface FoodItem {
     | 'soups'
     | 'mains'
     | 'garnishes'
+    | 'bread_bakery'
     | 'salads'
     | 'fastfood'
     | 'pizza_pasta'
     | 'asian'
     | 'dairy_eggs'
+    | 'candies_chocolates'
     | 'pastry_sweets'
     | 'fruits_nuts'
     | 'vegetables'
@@ -45,6 +49,8 @@ export const FOOD_CATEGORY_GROUPS: {
   title: string;
   icon: string;
 }[] = [
+  { id: 'bread_bakery', title: 'Хлеб, Выпечка и Вензели', icon: '🥖' },
+  { id: 'candies_chocolates', title: 'Конфеты, Шоколад и Батончики', icon: '🍫' },
   { id: 'soups', title: 'Супы и Первые блюда', icon: '🍲' },
   { id: 'mains', title: 'Мясо, Птица и Рыба', icon: '🍗' },
   { id: 'garnishes', title: 'Гарниры и Каши', icon: '🍚' },
@@ -55,13 +61,15 @@ export const FOOD_CATEGORY_GROUPS: {
   { id: 'pizza_pasta', title: 'Пицца и Паста', icon: '🍕' },
   { id: 'asian', title: 'Суши и Азиатская кухня', icon: '🍣' },
   { id: 'dairy_eggs', title: 'Молочное, Яйца и Сырники', icon: '🥛' },
-  { id: 'pastry_sweets', title: 'Выпечка и Десерты', icon: '🥐' },
+  { id: 'pastry_sweets', title: 'Десерты и Торты', icon: '🥐' },
   { id: 'fruits_nuts', title: 'Фрукты, Ягоды и Орехи', icon: '🍏' },
   { id: 'vegetables', title: 'Овощи и Зелень', icon: '🥦' },
   { id: 'drinks', title: 'Напитки и Кофе', icon: '☕️' },
 ];
 
 export const FOOD_DICTIONARY: FoodItem[] = [
+  ...BREAD_BAKERY_FOOD_ITEMS,
+  ...CANDIES_CHOCOLATES_FOOD_ITEMS,
   ...SOUPS_FOOD_ITEMS,
   ...MAINS_FOOD_ITEMS,
   ...GARNISHES_FOOD_ITEMS,
@@ -77,3 +85,4 @@ export const FOOD_DICTIONARY: FoodItem[] = [
   ...VEGETABLES_FOOD_ITEMS,
   ...DRINKS_FOOD_ITEMS,
 ];
+

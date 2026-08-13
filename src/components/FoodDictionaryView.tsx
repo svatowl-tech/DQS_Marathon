@@ -106,7 +106,20 @@ export const FoodDictionaryView: React.FC<FoodDictionaryViewProps> = ({
   }, [filteredItems, visibleCount]);
 
   // Quick preset chips
-  const quickSearchChips = ['Борщ', 'Шаурма', 'Цезарь', 'Овсянка', 'Сырники', 'Поке', 'Пицца', 'Капучино'];
+  const quickSearchChips = [
+    'Вензель',
+    'Хлеб',
+    'Сникерс',
+    'Шоколад',
+    'Борщ',
+    'Шаурма',
+    'Цезарь',
+    'Хачапури',
+    'Сырники',
+    'Пирожок',
+    'Пицца',
+    'Капучино',
+  ];
 
   const handleOpenDishModal = (item: FoodItem) => {
     setSelectedDish(item);
@@ -620,7 +633,7 @@ export const FoodDictionaryView: React.FC<FoodDictionaryViewProps> = ({
                         {Object.entries(calc.servings).map(([catId, val]) => {
                           const catInfo = DQS_CATEGORIES.find((c) => c.id === catId);
                           if (!catInfo || !val) return null;
-                          const isPositive = catInfo.group === 'positive';
+                          const isPositive = catInfo.group === 'positive' || catInfo.group === 'limited';
 
                           return (
                             <span
@@ -805,7 +818,7 @@ export const FoodDictionaryView: React.FC<FoodDictionaryViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1 bg-zinc-950/80 rounded-2xl border border-zinc-800">
                   {DQS_CATEGORIES.map((cat) => {
                     const currentVal = newServings[cat.id] || 0;
-                    const isPos = cat.group === 'positive';
+                    const isPos = cat.group === 'positive' || cat.group === 'limited';
 
                     return (
                       <div
@@ -980,7 +993,7 @@ export const FoodDictionaryView: React.FC<FoodDictionaryViewProps> = ({
                     {Object.entries(calc.servings).map(([catId, val]) => {
                       const catInfo = DQS_CATEGORIES.find((c) => c.id === catId);
                       if (!catInfo || !val) return null;
-                      const isPositive = catInfo.group === 'positive';
+                      const isPositive = catInfo.group === 'positive' || catInfo.group === 'limited';
 
                       return (
                         <div

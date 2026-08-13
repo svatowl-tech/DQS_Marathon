@@ -64,10 +64,10 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
 
   // Group non-zero categories
   const activeHealthyServings = DQS_CATEGORIES.filter(
-    (c) => c.group !== 'negative' && (log.servings[c.id] || 0) > 0
+    (c) => (c.group === 'positive' || c.group === 'limited') && (log.servings[c.id] || 0) > 0
   );
   const activeRestrictedServings = DQS_CATEGORIES.filter(
-    (c) => c.group === 'negative' && (log.servings[c.id] || 0) > 0
+    (c) => (c.group === 'negative' || c.group === 'neutral') && (log.servings[c.id] || 0) > 0
   );
 
   const handleDownloadImage = async () => {

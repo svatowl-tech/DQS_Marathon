@@ -68,7 +68,7 @@ export const PIZZA_PASTA_FOOD_ITEMS: FoodItem[] = [
     categoryGroup: 'pizza_pasta',
     defaultAmount: 200,
     unit: 'г',
-    servings: { other_grains: 1.5, processed_meat: 0.5, dairy: 0.5, vegetables: 0.5 },
+    servings: { other_grains: 1.5, processed_meat: 0.5, cheese: 0.5, vegetables: 0.5 },
     description: '4 секции: ветчина, грибы, томаты, морепродукты/пепперони',
     keywords: ['четыре сезона', 'пицца'],
   },

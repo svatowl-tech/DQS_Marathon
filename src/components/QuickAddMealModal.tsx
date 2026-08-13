@@ -372,8 +372,8 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
     }
   };
 
-  const healthyCategories = DQS_CATEGORIES.filter((c) => c.group !== 'negative');
-  const restrictedCategories = DQS_CATEGORIES.filter((c) => c.group === 'negative');
+  const healthyCategories = DQS_CATEGORIES.filter((c) => c.group === 'positive' || c.group === 'limited');
+  const restrictedCategories = DQS_CATEGORIES.filter((c) => c.group === 'negative' || c.group === 'neutral');
 
   const activeCategories = categoryTab === 'healthy' ? healthyCategories : restrictedCategories;
 
@@ -527,6 +527,21 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
                     ✕
                   </button>
                 )}
+              </div>
+
+              {/* Quick Suggestion Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
+                <span className="text-[10px] text-zinc-400 whitespace-nowrap">Примеры:</span>
+                {['Вензель', 'Хлеб', 'Сникерс', 'Шоколад', 'Борщ', 'Шаурма', 'Пирожок'].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setFoodSearchQuery(chip)}
+                    className="px-2 py-0.5 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/70 text-[10px] text-zinc-300 hover:text-emerald-400 whitespace-nowrap transition-colors"
+                  >
+                    {chip}
+                  </button>
+                ))}
               </div>
 
               {/* Notification toast for auto categorization */}
@@ -696,7 +711,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
                           {Object.entries(calc.servings).map(([catId, val]) => {
                             const catInfo = DQS_CATEGORIES.find((c) => c.id === catId);
                             if (!catInfo || !val) return null;
-                            const isNegative = catInfo.group === 'negative';
+                            const isNegative = catInfo.group === 'negative' || catInfo.group === 'neutral';
                             return (
                               <span
                                 key={catId}

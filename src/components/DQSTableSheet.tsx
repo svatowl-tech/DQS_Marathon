@@ -184,14 +184,14 @@ export const DQSTableSheet: React.FC<DQSTableSheetProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-slate-200">
-              {/* POSITIVE & LIMITED & NEUTRAL CATEGORIES HEADER */}
+              {/* POSITIVE & LIMITED CATEGORIES HEADER */}
               <tr className="bg-emerald-500/10 font-bold text-emerald-400 text-[11px]">
                 <td colSpan={8} className="p-2 px-3 uppercase tracking-wider font-mono">
-                  ✔ Полезные, ограниченные и нейтральные категории
+                  ✔ Полезные и качественные категории (Плюс баллы)
                 </td>
               </tr>
 
-              {DQS_CATEGORIES.filter((c) => c.group !== 'negative').map((cat) => (
+              {DQS_CATEGORIES.filter((c) => c.group === 'positive' || c.group === 'limited').map((cat) => (
                 <tr key={cat.id} className="hover:bg-white/5 transition-colors">
                   <td className="p-3 font-semibold text-slate-200 bg-white/2">
                     <div>{cat.nameRu}</div>
@@ -256,7 +256,7 @@ export const DQSTableSheet: React.FC<DQSTableSheetProps> = ({
                 </td>
               </tr>
 
-              {DQS_CATEGORIES.filter((c) => c.group === 'negative').map((cat) => (
+              {DQS_CATEGORIES.filter((c) => c.group === 'negative' || c.group === 'neutral').map((cat) => (
                 <tr key={cat.id} className="hover:bg-white/5 transition-colors">
                   <td className="p-3 font-semibold text-slate-200 bg-white/2">
                     <div>{cat.nameRu}</div>
