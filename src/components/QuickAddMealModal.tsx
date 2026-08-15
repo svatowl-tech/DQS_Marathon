@@ -532,7 +532,7 @@ export const QuickAddMealModal: React.FC<QuickAddMealModalProps> = ({
               {/* Quick Suggestion Chips */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
                 <span className="text-[10px] text-zinc-400 whitespace-nowrap">Примеры:</span>
-                {['Мёд', 'Овсянка', 'Каша', 'Боул', 'Хлеб', 'Вензель', 'Чак-чак', 'Сникерс', 'Шоколад', 'Борщ', 'Шаурма', 'Пирожок'].map((chip) => (
+                {['Буше', 'Вензель', 'Ле Сантье', 'Кельтский', 'Мёд', 'Овсянка', 'Каша', 'Боул', 'Хлеб', 'Чак-чак', 'Сникерс', 'Шоколад', 'Борщ', 'Шаурма', 'Пирожок'].map((chip) => (
                   <button
                     key={chip}
                     type="button"

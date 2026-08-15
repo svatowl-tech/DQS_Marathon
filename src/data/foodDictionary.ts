@@ -19,6 +19,7 @@ import { DRINKS_FOOD_ITEMS } from './food/drinks';
 import { SNACKS_FOOD_ITEMS } from './food/snacks';
 import { READY_MEALS_FOOD_ITEMS } from './food/ready_meals';
 import { DELIVERY_READY_MEALS_FOOD_ITEMS } from './food/delivery_ready_meals';
+import { BUSHE_FOOD_ITEMS } from './food/bushe_bakery';
 
 export interface FoodItem {
   id: string;
@@ -72,6 +73,7 @@ export const FOOD_CATEGORY_GROUPS: {
 ];
 
 export const FOOD_DICTIONARY: FoodItem[] = [
+  ...BUSHE_FOOD_ITEMS,
   ...BREAD_BAKERY_FOOD_ITEMS,
   ...ARTISAN_BREADS_FOOD_ITEMS,
   ...CANDIES_CHOCOLATES_FOOD_ITEMS,
