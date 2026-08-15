@@ -2,19 +2,23 @@ import { CategoryId } from '../types';
 import { SOUPS_FOOD_ITEMS } from './food/soups';
 import { MAINS_FOOD_ITEMS } from './food/mains';
 import { GARNISHES_FOOD_ITEMS } from './food/garnishes';
+import { PORRIDGES_DETAILED_FOOD_ITEMS } from './food/porridges_detailed';
 import { BREAD_BAKERY_FOOD_ITEMS } from './food/bread_bakery';
+import { ARTISAN_BREADS_FOOD_ITEMS } from './food/artisan_breads';
 import { SALADS_FOOD_ITEMS } from './food/salads';
 import { FASTFOOD_FOOD_ITEMS } from './food/fastfood';
 import { PIZZA_PASTA_FOOD_ITEMS } from './food/pizza_pasta';
 import { ASIAN_FOOD_ITEMS } from './food/asian';
 import { DAIRY_EGGS_FOOD_ITEMS } from './food/dairy_eggs';
 import { CANDIES_CHOCOLATES_FOOD_ITEMS } from './food/candies_chocolates';
+import { HONEY_FOOD_ITEMS } from './food/honey_products';
 import { PASTRY_SWEETS_FOOD_ITEMS } from './food/pastry_sweets';
 import { FRUITS_NUTS_FOOD_ITEMS } from './food/fruits_nuts';
 import { VEGETABLES_FOOD_ITEMS } from './food/vegetables';
 import { DRINKS_FOOD_ITEMS } from './food/drinks';
 import { SNACKS_FOOD_ITEMS } from './food/snacks';
 import { READY_MEALS_FOOD_ITEMS } from './food/ready_meals';
+import { DELIVERY_READY_MEALS_FOOD_ITEMS } from './food/delivery_ready_meals';
 
 export interface FoodItem {
   id: string;
@@ -69,12 +73,16 @@ export const FOOD_CATEGORY_GROUPS: {
 
 export const FOOD_DICTIONARY: FoodItem[] = [
   ...BREAD_BAKERY_FOOD_ITEMS,
+  ...ARTISAN_BREADS_FOOD_ITEMS,
   ...CANDIES_CHOCOLATES_FOOD_ITEMS,
+  ...HONEY_FOOD_ITEMS,
+  ...PORRIDGES_DETAILED_FOOD_ITEMS,
+  ...GARNISHES_FOOD_ITEMS,
+  ...READY_MEALS_FOOD_ITEMS,
+  ...DELIVERY_READY_MEALS_FOOD_ITEMS,
   ...SOUPS_FOOD_ITEMS,
   ...MAINS_FOOD_ITEMS,
-  ...GARNISHES_FOOD_ITEMS,
   ...SALADS_FOOD_ITEMS,
-  ...READY_MEALS_FOOD_ITEMS,
   ...SNACKS_FOOD_ITEMS,
   ...FASTFOOD_FOOD_ITEMS,
   ...PIZZA_PASTA_FOOD_ITEMS,

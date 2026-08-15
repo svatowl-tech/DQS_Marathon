@@ -107,8 +107,13 @@ export const FoodDictionaryView: React.FC<FoodDictionaryViewProps> = ({
 
   // Quick preset chips
   const quickSearchChips = [
-    'Вензель',
+    'Мёд',
+    'Каша',
+    'Овсянка',
+    'Боул',
     'Хлеб',
+    'Вензель',
+    'Чак-чак',
     'Сникерс',
     'Шоколад',
     'Борщ',
