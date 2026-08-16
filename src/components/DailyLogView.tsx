@@ -169,7 +169,8 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
   };
 
   const positiveCats = DQS_CATEGORIES.filter((c) => c.group === 'positive' || c.group === 'limited');
-  const negativeCats = DQS_CATEGORIES.filter((c) => c.group === 'neutral' || c.group === 'negative');
+  const neutralCats = DQS_CATEGORIES.filter((c) => c.group === 'neutral');
+  const negativeCats = DQS_CATEGORIES.filter((c) => c.group === 'negative');
 
   const getScoreBadge = (score: number) => {
     const targetGreen = settings?.targetDqsGreen || 18;
@@ -379,7 +380,7 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
               <h2 className="font-bold text-slate-100 text-base">
-                Здоровые и нейтральные категории (Плюс / 0 баллов)
+                Полезные и качественные категории (+ баллы)
               </h2>
             </div>
             <span className="text-xs text-slate-400 font-mono">
@@ -441,25 +442,97 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
                     </div>
 
                     {/* Diversity Bonus Checkbox */}
-                    {cat.id !== 'refined_grains' ? (
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-300 select-none">
-                        <input
-                          type="checkbox"
-                          checked={hasDiv}
-                          onChange={() => handleDiversityToggle(cat.id)}
-                          className="w-4 h-4 text-emerald-500 bg-white/5 border-white/20 rounded focus:ring-emerald-500 accent-emerald-500"
-                        />
-                        <span>3+ различных (+2б)</span>
-                      </label>
-                    ) : (
-                      <div className="text-[11px] text-zinc-500 italic font-medium">Нейтральная категория</div>
-                    )}
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-300 select-none">
+                      <input
+                        type="checkbox"
+                        checked={hasDiv}
+                        onChange={() => handleDiversityToggle(cat.id)}
+                        className="w-4 h-4 text-emerald-500 bg-white/5 border-white/20 rounded focus:ring-emerald-500 accent-emerald-500"
+                      />
+                      <span>3+ различных (+1б)</span>
+                    </label>
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
+
+        {/* NEUTRAL CATEGORIES */}
+        {neutralCats.length > 0 && (
+          <div className="bg-[#111] rounded-2xl p-5 shadow-lg border border-amber-500/20">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                <h2 className="font-bold text-slate-100 text-base">
+                  Нейтральные гарниры (0 баллов за 1-ю порцию)
+                </h2>
+              </div>
+              <span className="text-xs text-amber-400/90 font-mono">
+                1-я порция = 0б, со 2-й порции = -1б
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {neutralCats.map((cat) => {
+                const count = log.servings[cat.id] || 0;
+                const points = getCategoryPoints(cat.id, count);
+
+                return (
+                  <div
+                    key={cat.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      count > 0
+                        ? points < 0 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-zinc-800/80 border-amber-500/20'
+                        : 'bg-white/5 border-white/5'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                          {cat.nameRu}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{cat.portionExample}</p>
+                      </div>
+                      <span
+                        className={`text-xs font-mono font-bold px-2 py-0.5 rounded shrink-0 ${
+                          points < 0 ? 'bg-amber-500 text-black' : 'bg-white/10 text-slate-300'
+                        }`}
+                      >
+                        {points} б.
+                      </span>
+                    </div>
+
+                    {/* Servings Counter */}
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleServingsChange(cat.id, -1)}
+                          className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-200 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-30"
+                          disabled={count <= 0}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center font-bold font-mono text-slate-100 text-base">
+                          {count}
+                        </span>
+                        <button
+                          onClick={() => handleServingsChange(cat.id, 1)}
+                          className="w-8 h-8 rounded-lg bg-amber-500 border border-amber-400 text-black flex items-center justify-center font-bold hover:bg-amber-400 active:scale-95 transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="text-[11px] text-amber-300/80 italic font-medium">
+                        {count === 0 ? '1-я порция нейтральна' : count === 1 ? '1-я порция (0б)' : `Со 2-й порции (${points}б)`}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* NEGATIVE CATEGORIES */}
         <div className="bg-[#111] rounded-2xl p-5 shadow-lg border border-white/5">
@@ -718,13 +791,15 @@ export const DailyLogView: React.FC<DailyLogViewProps> = ({
               type="number"
               step="0.1"
               placeholder="Например 72.5"
-              value={log.weight ?? ''}
-              onChange={(e) =>
+              value={log.weight ?? log.morningWeight ?? ''}
+              onChange={(e) => {
+                const val = e.target.value ? parseFloat(e.target.value) : undefined;
                 onUpdateLog({
                   ...log,
-                  weight: e.target.value ? parseFloat(e.target.value) : undefined,
-                })
-              }
+                  weight: val,
+                  morningWeight: val,
+                });
+              }}
               className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl font-mono font-bold text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
             <p className="text-[10px] text-slate-500">

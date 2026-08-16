@@ -359,8 +359,9 @@ export function migrateDailyLogEntry(entry: DailyLogEntry): DailyLogEntry {
   const score = calculateDailyDQS(servings, diversity);
 
   // Sync weight & morningWeight
-  const morningWeight = entry.morningWeight ?? entry.weight;
-  const weight = entry.weight ?? morningWeight;
+  const syncedWeight = entry.weight !== undefined ? entry.weight : entry.morningWeight;
+  const morningWeight = syncedWeight;
+  const weight = syncedWeight;
 
   // Sync measurements
   const waist = entry.waist ?? entry.measurements?.waist;

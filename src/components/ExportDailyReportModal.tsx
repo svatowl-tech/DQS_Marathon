@@ -17,6 +17,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
+import { downloadOrShareImage } from '../utils/imageExportHelper';
 import { DailyLogEntry, UserSettings, WeeklySundayReport } from '../types';
 import { DQS_CATEGORIES, formatDateRu, getDayOfWeekRu, calculateDailyDQS } from '../utils/dqsEngine';
 import { calculateAchievements } from '../utils/achievementsEngine';
@@ -91,10 +92,7 @@ export const ExportDailyReportModal: React.FC<ExportDailyReportModalProps> = ({
         },
       });
 
-      const link = document.createElement('a');
-      link.download = `dqs-report-${log.date}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadOrShareImage(dataUrl, `dqs-report-${log.date}.png`);
     } catch (err) {
       console.error('Failed to export card image:', err);
       alert('Произошла ошибка при генерации изображения. Попробуйте еще раз.');

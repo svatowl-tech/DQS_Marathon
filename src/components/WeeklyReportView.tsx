@@ -36,6 +36,7 @@ import {
 import { getFormattedLocalDate } from '../utils/timeZoneService';
 import { generateReportCardImage, ReportCardOptions } from '../utils/reportCardCanvas';
 import { calculateAchievements } from '../utils/achievementsEngine';
+import { downloadOrShareImage } from '../utils/imageExportHelper';
 import { AchievementsBadgeList } from './AchievementsBadgeList';
 
 interface WeeklyReportViewProps {
@@ -268,12 +269,18 @@ export const WeeklyReportView: React.FC<WeeklyReportViewProps> = ({
     alert('Отчет за неделю успешно сохранен!');
   };
 
-  const handleDownloadImage = () => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadImage = async () => {
     if (!cardImage) return;
-    const a = document.createElement('a');
-    a.href = cardImage;
-    a.download = `DQS_Отчет_${selectedSunday}.png`;
-    a.click();
+    setIsExporting(true);
+    try {
+      await downloadOrShareImage(cardImage, `DQS_Отчет_${selectedSunday}.png`);
+    } catch (err) {
+      console.error('Export error:', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Achievements for current selected week
